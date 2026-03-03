@@ -257,9 +257,11 @@ def line_plot(df: pd.DataFrame, long_feature: str, station: str, start=None, end
         if end not in df.index:
             raise Exception(f'df must contain data from {end}.')
 
-        time_range = df.index[df.index < end]
+        df_slice = df.loc[df.index < end]
     elif start is not None and end is not None:
         # input check
+        if start == end:
+            raise Exception(f'start and end cannot be the same.')
         if start > end:
             raise Exception(f'start must be before end.')
         if start not in df.index:
@@ -267,11 +269,10 @@ def line_plot(df: pd.DataFrame, long_feature: str, station: str, start=None, end
         if end not in df.index:
             raise Exception(f'df must contain data from {end}.')
 
-        time_range = df.index[start < df.index < end]
+        df_slice = df.loc[start:end]
     else: # default to plotting all records
-        time_range = df.index
+        df_slice = df
 
-    df_slice = df.loc[time_range]
     plt.plot(df_slice.index, df_slice[long_feature])
     plt.title(f'{station}, {long_feature}')
     plt.ylabel(long_feature)
