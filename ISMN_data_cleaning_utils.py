@@ -1,58 +1,322 @@
 import pandas as pd
-from matplotlib import pyplot as plt
-from pathlib import Path
 import numpy as np
+from matplotlib import pyplot as plt
+import datetime
+from pathlib import Path
+import pytz
 
-data_path = Path('data/Data_separate_files_header_20050831_20250322_13091_l3Sc_20260203/SNOTEL/Nenana')
-df = pd.read_csv(data_path / 'SNOTEL_SNOTEL_Nenana_sd_0.000000_0.000000_n.s._20050831_20250322.stm',
-                 sep=' ',
-                 header=None,
-                 skiprows=1)
-df.columns = ['UTC_date', 'UTC_time', 'snow_depth', 'ISMN_data_quality', 'provider_data_quality']
+def collect_data(path: Path, depth: float, short_feature: str, long_feature: str) -> pd.DataFrame:
+    """
+    Collect data for a station into a list then merge into a single df
+    :param path: path to directory for a station
+    :param depth: max depth in meters, exclusive
+    :param short_feature: abbreviated variable name
+    :param long_feature: full variable name
+    :return: combined_df
+    """
+    # check data types
+    if not isinstance(path, Path):
+        raise TypeError('path must be a Path object')
+    if not isinstance(depth, float):
+        raise TypeError('depth must be a float')
+    if not isinstance(short_feature, str):
+        raise TypeError('short_feature must be a string')
+    if not isinstance(long_feature, str):
+        raise TypeError('long_feature must be a string')
 
-# merge UTC_date and UTC_time into UTC_timestamp
-df['UTC_timestamp'] = df['UTC_date'].astype(str) + ' ' + df['UTC_time'].astype(str)
-df['UTC_timestamp'] = pd.to_datetime(df['UTC_timestamp'], format='%Y/%m/%d %H:%M')
-df = df.drop(columns=['UTC_date', 'UTC_time'])
+    # check value of inputs
+    if not path.is_dir():
+        raise ValueError('path must point to a directory')
+    if depth < 0:
+        raise ValueError('depth must be zero or positive')
 
-# --- Snow-depth ---
-# convert snow depths that are flagged as not good (G) into missing values
-df.loc[df['ISMN_data_quality'] != 'G', 'snow_depth'] = np.nan
 
-# identify all missing or invalid values
-missing_invalid = df['snow_depth'].isna()
+    col_names = ['UTC_date', 'UTC_time', long_feature, 'ISMN_data_quality', 'provider_data_quality']
 
-# identify consecutive missing/invalid runs
-groups = missing_invalid.ne(missing_invalid.shift()).cumsum()
+    dfs = []
+    for file in path.iterdir():
+        filename = file.name
+        filename_split = filename.split('_')
 
-# compute run lengths in hours
-run_lengths = (
-    df[missing_invalid]
-    .groupby(groups[missing_invalid])
-    .size()
-)
+        # skip if file extension is not .stm
+        if not filename.endswith('.stm'):
+            continue
 
-# find runs lasting at least 14 days/336 hours
-long_runs = run_lengths[run_lengths >= 336]
-if long_runs.empty:
-    cleaned_df = df.copy()
+        # skip if file contains wrong variable or soil depth
+        if filename_split[3] != short_feature or float(filename_split[4]) >= depth:
+            continue
 
-# find last such run and its ending timestamp
-last_run_id = long_runs.index[-1]
+        df = pd.read_csv(file, sep=' ', header=None, skiprows=1, names=col_names)
+        dfs.append(df)
 
-last_run_end_idx = df.index[
-    (groups == last_run_id)
-].max()
+    if len(dfs) == 0:
+        raise Exception(f'No data found for {path.name}, depth={depth}, variable={long_feature}')
 
-# clean df
-cleaned_df = df.loc[last_run_end_idx + 1:].reset_index(drop=True)
+    combined_df = pd.concat(dfs, axis=0, ignore_index=True)
 
-# # determine the first non-zero or non-missing record and discard all records prior to it
-# first_nonzero_idx = df[df['snow_depth'] > 0].index[0]
-# df = df.iloc[first_nonzero_idx:].reset_index(drop=True)
+    return combined_df
 
-# Impute remaining missing values using linear interpolation
-cleaned_df['snow_depth'] = cleaned_df['snow_depth'].interpolate(method='linear')
+def create_timestamp_col(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Create a UTC timestamp column.
+    ISMN has the date and time in separate columns.
+    :param df:
+    :return: df with timestamp column
+    """
+    # check data type
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError('df must be a pd.DataFrame')
 
-plt.plot(cleaned_df['UTC_timestamp'], cleaned_df['snow_depth'])
-plt.show()
+    # check that df contains required columns
+    if not {'UTC_date', 'UTC_time'}.issubset(df.columns):
+        raise ValueError('df must contain UTC_date and UTC_time')
+
+    df_copy = df.copy()
+
+    df_copy['UTC_timestamp'] = df_copy['UTC_date'].astype(str) + ' ' + df_copy['UTC_time'].astype(str)
+    df_copy['UTC_timestamp'] = pd.to_datetime(df_copy['UTC_timestamp'], format='%Y/%m/%d %H:%M')
+    df_copy = df_copy.drop(columns=['UTC_date', 'UTC_time'])
+    df_copy.set_index('UTC_timestamp', inplace=True)
+    df_copy.index = df_copy.index.tz_localize('UTC')
+
+    return df_copy
+
+def convert_nan(df: pd.DataFrame, long_feature: str) -> pd.DataFrame:
+    """
+    Create proper nan values in the df.
+    ISMN fills nan with -9999.
+    provider_data_quality column not used because inconsistent across networks.
+    :param df:
+    :param long_feature: full variable name
+    :return: df with proper nan values
+    """
+    # check data types
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError('df must be a pd.DataFrame')
+    if not isinstance(long_feature, str):
+        raise TypeError('long_feature must be a string')
+    if df.index.dtype != 'datetime64[us, UTC]':
+        raise Exception(f'Index of df must contain datetime64[us, UTC] data.')
+
+    # check that required columns are present
+    if 'ISMN_data_quality' not in df.columns:
+        raise ValueError('df must contain ISMN_data_quality')
+    if long_feature not in df.columns:
+        raise ValueError(f'{long_feature} must be in df.columns')
+
+    df_copy = df.copy()
+
+    df_copy.loc[df_copy['ISMN_data_quality'] != 'G', long_feature] = np.nan
+
+    return df_copy
+
+def report_nan_count(df: pd.DataFrame, long_feature: str) -> None:
+    """
+    Prints the total number of nan values in the df and percent missing.
+    :param df:
+    :param long_feature: full variable name
+    :return: None
+    """
+    # check data types
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError('df must be a pd.DataFrame')
+    if not isinstance(long_feature, str):
+        raise TypeError('long_feature must be a string')
+    if df.index.dtype != 'datetime64[us, UTC]':
+        raise Exception(f'Index of df must contain datetime64[us, UTC] data.')
+
+    # check that required column is present
+    if long_feature not in df.columns:
+        raise ValueError(f'df must contain {long_feature}')
+
+    na_count = df.isnull().sum()[long_feature]
+    print(f'There are {na_count} nulls out of {len(df)} datapoints ({round(na_count/len(df),2)}% missing).')
+
+def get_nan_gaps(df: pd.DataFrame, long_feature: str) -> pd.DataFrame:
+    """
+    Determines nan gaps in the long_feature column of the df.
+    Uses the existing UTC_timestamp as the index for start and end timestamps.
+    :param df: index is datetime
+    :param long_feature: full variable name
+    :return: df with
+        - start_timestamp: timestamp of the first row in the gap
+        - end_timestamp: timestamp of the last row in the gap
+        - gap_length_hours: length of the gap in hours
+        - prev_(long_feature): value before the gap
+        - next_(long_feature): value after the gap
+    """
+    # check data types
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError('df must be a pd.DataFrame')
+    if not isinstance(long_feature, str):
+        raise TypeError('long_feature must be a string')
+    if df.index.dtype != 'datetime64[us, UTC]':
+        raise Exception(f'Index of df must contain datetime64[us, UTC] data.')
+
+    # check values
+    if long_feature not in df.columns:
+        raise Exception(f'Missing required column "{long_feature}".')
+
+    df_copy = df.copy()
+
+    # Step 1: Fill forward and backward for prev_temp and next_temp
+    df_copy[f'prev_{long_feature}'] = df_copy[long_feature].ffill()
+    df_copy[f'next_{long_feature}'] = df_copy[long_feature].bfill()
+
+    # Step 2: Identify gaps (NaN in long_feature)
+    mask = df_copy[long_feature].isna()
+
+    # Step 3: Create group IDs for consecutive NaNs
+    group_ids = (~mask).cumsum()
+    group_ids = group_ids.where(~mask, group_ids.shift(1).fillna(0))
+    group_ids = group_ids.fillna(0).astype(int)
+
+    # Step 4: Group by group_ids and filter for groups with NaNs
+    grouped = df_copy.groupby(group_ids)
+
+    results = []
+    for _, group in grouped:
+        if group[long_feature].isna().any():
+            start_row = group.iloc[0]
+            end_row = group.iloc[-1]
+            start_ts = start_row.name + datetime.timedelta(hours=1)
+            end_ts = end_row.name
+            gap_length = len(group) - 1
+            prev_val = start_row[f'prev_{long_feature}']
+            next_val = end_row[f'next_{long_feature}']
+            results.append({
+                'start_timestamp': start_ts,
+                'end_timestamp': end_ts,
+                'gap_length_hours': gap_length,
+                f'prev_{long_feature}': prev_val,
+                f'next_{long_feature}': next_val
+            })
+
+    results = pd.DataFrame(results)
+    results = results[results['gap_length_hours'] > 1]
+
+    return results
+
+def add_missed_transitions_col(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Adds column indicating if an F/T transition occurred during a NaN gap.
+    :param df: must contain soil_temp data
+    :return: df with added boolean column 'possible_transition'
+    """
+    required_cols = ['start_timestamp', 'end_timestamp', 'gap_length_hours', 'prev_soil_temp', 'next_soil_temp']
+    if not set(required_cols) <= set(df.columns):
+        raise Exception(f'df does not contain all required columns. Required columns: {required_cols}')
+
+    df_copy = df.copy()
+
+    df_copy['possible_transition'] = (
+            abs(df_copy['prev_soil_temp'] + df_copy['next_soil_temp'])
+            < df_copy[['prev_soil_temp', 'next_soil_temp']].abs().max(axis=1)
+    )
+
+    return df_copy
+
+def line_plot(df: pd.DataFrame, long_feature: str, station: str, start=None, end=None) -> None:
+    """
+    Plots a line plot of long_feature vs the index.
+    If end given but not start, plot will begin from the earliest timestamp in the df.
+    :param df:
+    :param long_feature: full variable name
+    :param station: name of the ISMN station
+    :param start: naive datetime.datetime object
+    :param end: naive datetime.datetime object
+    :return: None
+    """
+    # check data types
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError('df must be a pd.DataFrame')
+    if not isinstance(long_feature, str):
+        raise TypeError('long_feature must be a string')
+    if not isinstance(station, str):
+        raise TypeError('station must be a string')
+    if df.index.dtype != 'datetime64[us, UTC]':
+        raise Exception(f'Index of df must contain datetime64[us, UTC] data.')
+
+    # check values
+    if long_feature not in df.columns:
+        raise Exception(f'Missing required column "{long_feature}".')
+
+    # check start and end have correct data type
+    if start is not None:
+        if type(start) is not datetime.datetime:
+            raise Exception(f'start must be a datetime.datetime object.')
+        start = start.replace(tzinfo=pytz.UTC)
+    if end is not None:
+        if type(end) is not datetime.datetime:
+            raise Exception(f'end must be a datetime.datetime object.')
+        end = end.replace(tzinfo=pytz.UTC)
+
+    # set date range for plot
+    if start is None and end is not None:
+        # input check
+        if end not in df.index:
+            raise Exception(f'df must contain data from {end}.')
+
+        time_range = df.index[df.index < end]
+    elif start is not None and end is not None:
+        # input check
+        if start > end:
+            raise Exception(f'start must be before end.')
+        if start not in df.index:
+            raise Exception(f'df must contain data from {start}.')
+        if end not in df.index:
+            raise Exception(f'df must contain data from {end}.')
+
+        time_range = df.index[start < df.index < end]
+    else: # default to plotting all records
+        time_range = df.index
+
+    df_slice = df.loc[time_range]
+    plt.plot(df_slice.index, df_slice[long_feature])
+    plt.title(f'{station}, {long_feature}')
+    plt.ylabel(long_feature)
+    plt.xlabel('Date')
+    plt.xticks(rotation=30)
+
+    if long_feature == 'soil_temp':
+        plt.axhline(y=0, color='k')
+
+    plt.show()
+
+def make_nan(df: pd.DataFrame, long_feature: str, start: datetime.datetime, end: datetime.datetime) -> pd.DataFrame:
+    """
+    Set records between start and end timestamps (inclusive) to np.nan.
+    :param df:
+    :param long_feature: full variable name
+    :param start: naive datetime.datetime object; must be in df.index
+    :param end: naive datetime.datetime object; must be in df.index
+    :return: df with specified records set to NaN
+    """
+    # check data types
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError('df must be a pd.DataFrame')
+    if df.index.dtype != 'datetime64[us, UTC]':
+        raise Exception(f'Index of df must contain datetime64[us, UTC] data.')
+    if not isinstance(long_feature, str):
+        raise TypeError('long_feature must be a string')
+    if type(start) is not datetime.datetime:
+        raise Exception(f'start must be a datetime.datetime object.')
+    if type(end) is not datetime.datetime:
+        raise Exception(f'end must be a datetime.datetime object.')
+
+    # add timezone
+    start = start.replace(tzinfo=pytz.UTC)
+    end = end.replace(tzinfo=pytz.UTC)
+
+    # check values
+    if long_feature not in df.columns:
+        raise Exception(f'Missing required column "{long_feature}".')
+    if start not in df.index:
+        raise Exception(f'df must contain data from {start}.')
+    if end not in df.index:
+        raise Exception(f'df must contain data from {end}.')
+
+    df_copy = df.copy()
+    df_copy.loc[start:end, long_feature] = np.nan
+
+    return df_copy
