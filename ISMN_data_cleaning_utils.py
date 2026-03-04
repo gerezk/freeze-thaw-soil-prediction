@@ -6,8 +6,8 @@ from matplotlib import pyplot as plt
 import datetime
 from pathlib import Path
 import pytz
-from typing import List, overload
 import numbers
+from typing import List
 
 def collect_data(path: Path, depth: numbers.Real, short_feature: str, long_feature: str) -> pd.DataFrame:
     """
@@ -289,8 +289,7 @@ def line_plot(df: pd.DataFrame, long_feature: str, station: str, start=None, end
 
     plt.show()
 
-# @overload
-def make_nan(df: pd.DataFrame, long_feature: str, start: datetime.datetime, end: datetime.datetime) -> pd.DataFrame:
+def make_nan_window(df: pd.DataFrame, long_feature: str, start: datetime.datetime, end: datetime.datetime) -> pd.DataFrame:
     """
     Set records between start and end timestamps (inclusive) to np.nan.
     :param df:
@@ -328,11 +327,36 @@ def make_nan(df: pd.DataFrame, long_feature: str, start: datetime.datetime, end:
 
     return df_copy
 
-# @overload
-# def make_nan(df: pd.DataFrame, long_feature: str, indices: list) -> pd.DataFrame:
+def make_nan_indices(df: pd.DataFrame, long_feature: str, timestamps: pd.Index) -> pd.DataFrame:
+    """
+    Set long_feature of rows in df that match timestamps by index to np.nan.
+    :param df:
+    :param long_feature: full variable name
+    :param timestamps: index of datetime64[us, UTC]
+    :return:
+    """
+    # check data types
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError('df must be a pd.DataFrame')
+    if df.index.dtype != 'datetime64[us, UTC]':
+        raise Exception(f'Index of df must contain datetime64[us, UTC] data.')
+    if not isinstance(long_feature, str):
+        raise TypeError('long_feature must be a string')
+    if not isinstance(timestamps, pd.Index):
+        raise TypeError('timestamps must be a pd.Index')
+
+    # check values
+    if long_feature not in df.columns:
+        raise Exception(f'Missing required column "{long_feature}".')
+
+    df_copy = df.copy()
+
+    df_copy.loc[timestamps.to_list(), [long_feature]] = np.nan
+
+    return df_copy
 
 
-def find_outlier_spikes(df: pd.DataFrame, long_feature: str, threshold: numbers.Real) -> np.ndarray:
+def find_outlier_spikes(df: pd.DataFrame, long_feature: str, threshold: numbers.Real) -> pd.Index:
     """
     Detect single datapoint outliers for column long_feature in df based on threshold.
     A single datapoint is flagged as an outlier if the absolute differences between it and BOTH immediate non-NaN
@@ -340,7 +364,7 @@ def find_outlier_spikes(df: pd.DataFrame, long_feature: str, threshold: numbers.
     :param df: after processing with collect_data(), create_timestamp_col(), and convert_nan()
     :param long_feature: full variable name
     :param threshold: number
-    :return: np.ndarray of datetime64[us, UTC]
+    :return: pd.Index containing timestamps of outliers
     """
     # check data types
     if not isinstance(df, pd.DataFrame):
@@ -375,4 +399,4 @@ def find_outlier_spikes(df: pd.DataFrame, long_feature: str, threshold: numbers.
         (next_diff > threshold)
     )
 
-    return df_copy[df_copy['outlier']].index.values
+    return df_copy[df_copy['outlier']].index
