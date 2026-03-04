@@ -1,11 +1,15 @@
+from operator import index
+
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
 import datetime
 from pathlib import Path
 import pytz
+from typing import List, overload
+import numbers
 
-def collect_data(path: Path, depth: float, short_feature: str, long_feature: str) -> pd.DataFrame:
+def collect_data(path: Path, depth: numbers.Real, short_feature: str, long_feature: str) -> pd.DataFrame:
     """
     Collect data for a station into a list then merge into a single df
     :param path: path to directory for a station
@@ -17,8 +21,8 @@ def collect_data(path: Path, depth: float, short_feature: str, long_feature: str
     # check data types
     if not isinstance(path, Path):
         raise TypeError('path must be a Path object')
-    if not isinstance(depth, float):
-        raise TypeError('depth must be a float')
+    if not isinstance(depth, numbers.Real):
+        raise TypeError('depth must be a numeric')
     if not isinstance(short_feature, str):
         raise TypeError('short_feature must be a string')
     if not isinstance(long_feature, str):
@@ -273,6 +277,7 @@ def line_plot(df: pd.DataFrame, long_feature: str, station: str, start=None, end
     else: # default to plotting all records
         df_slice = df
 
+    df_slice = df_slice.sort_index()
     plt.plot(df_slice.index, df_slice[long_feature])
     plt.title(f'{station}, {long_feature}')
     plt.ylabel(long_feature)
@@ -284,6 +289,7 @@ def line_plot(df: pd.DataFrame, long_feature: str, station: str, start=None, end
 
     plt.show()
 
+# @overload
 def make_nan(df: pd.DataFrame, long_feature: str, start: datetime.datetime, end: datetime.datetime) -> pd.DataFrame:
     """
     Set records between start and end timestamps (inclusive) to np.nan.
@@ -321,3 +327,52 @@ def make_nan(df: pd.DataFrame, long_feature: str, start: datetime.datetime, end:
     df_copy.loc[start:end, long_feature] = np.nan
 
     return df_copy
+
+# @overload
+# def make_nan(df: pd.DataFrame, long_feature: str, indices: list) -> pd.DataFrame:
+
+
+def find_outlier_spikes(df: pd.DataFrame, long_feature: str, threshold: numbers.Real) -> np.ndarray:
+    """
+    Detect single datapoint outliers for column long_feature in df based on threshold.
+    A single datapoint is flagged as an outlier if the absolute differences between it and BOTH immediate non-NaN
+    neighbors are greater than threshold.
+    :param df: after processing with collect_data(), create_timestamp_col(), and convert_nan()
+    :param long_feature: full variable name
+    :param threshold: number
+    :return: np.ndarray of datetime64[us, UTC]
+    """
+    # check data types
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError('df must be a pd.DataFrame')
+    if df.index.dtype != 'datetime64[us, UTC]':
+        raise Exception(f'Index of df must contain datetime64[us, UTC] data.')
+    if not isinstance(long_feature, str):
+        raise TypeError('long_feature must be a string')
+    if not isinstance(threshold, numbers.Real):
+        raise TypeError('threshold must be a numeric')
+
+    # check values
+    if long_feature not in df.columns:
+        raise Exception(f'Missing required column "{long_feature}".')
+    if threshold <= 0:
+        raise Exception(f'threshold must be greater than 0.')
+
+    df_copy = df.copy()
+    s = df[long_feature]
+
+    # nearest valid neighbor to the left
+    prev_valid = s.ffill().shift(1)
+
+    # nearest valid neighbor to the right
+    next_valid = s.bfill().shift(-1)
+
+    prev_diff = (s - prev_valid).abs()
+    next_diff = (s - next_valid).abs()
+
+    df_copy['outlier'] = (
+        (prev_diff > threshold) &
+        (next_diff > threshold)
+    )
+
+    return df_copy[df_copy['outlier']].index.values
