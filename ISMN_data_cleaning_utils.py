@@ -1,5 +1,3 @@
-from operator import index
-
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
@@ -7,16 +5,15 @@ import datetime
 from pathlib import Path
 import pytz
 import numbers
-from typing import List
 
 def collect_data(path: Path, depth: numbers.Real, short_feature: str, long_feature: str) -> pd.DataFrame:
     """
-    Collect data for a station into a list then merge into a single df
+    Collect long_feature data for a station into a list, excluding data beyond max depth, then merge into a single df
     :param path: path to directory for a station
     :param depth: max depth in meters, exclusive
     :param short_feature: abbreviated variable name
     :param long_feature: full variable name
-    :return: combined_df
+    :return: df
     """
     # check data types
     if not isinstance(path, Path):
@@ -64,8 +61,8 @@ def create_timestamp_col(df: pd.DataFrame) -> pd.DataFrame:
     """
     Create a UTC timestamp column.
     ISMN has the date and time in separate columns.
-    :param df:
-    :return: df with timestamp column
+    :param df: from collect_data()
+    :return: df with timestamp (datetime64[us, UTC]) index
     """
     # check data type
     if not isinstance(df, pd.DataFrame):
@@ -90,7 +87,7 @@ def convert_nan(df: pd.DataFrame, long_feature: str) -> pd.DataFrame:
     Create proper nan values in the df.
     ISMN fills nan with -9999.
     provider_data_quality column not used because inconsistent across networks.
-    :param df:
+    :param df: from collect_data() and create_timestamp_col()
     :param long_feature: full variable name
     :return: df with proper nan values
     """
@@ -117,7 +114,7 @@ def convert_nan(df: pd.DataFrame, long_feature: str) -> pd.DataFrame:
 def report_nan_count(df: pd.DataFrame, long_feature: str) -> None:
     """
     Prints the total number of nan values in the df and percent missing.
-    :param df:
+    :param df: from collect_data(), create_timestamp_col(), and convert_nan()
     :param long_feature: full variable name
     :return: None
     """
@@ -140,7 +137,7 @@ def get_nan_gaps(df: pd.DataFrame, long_feature: str) -> pd.DataFrame:
     """
     Determines nan gaps in the long_feature column of the df.
     Uses the existing UTC_timestamp as the index for start and end timestamps.
-    :param df: index is datetime
+    :param df: from collect_data(), create_timestamp_col(), and convert_nan()
     :param long_feature: full variable name
     :return: df with
         - start_timestamp: timestamp of the first row in the gap
@@ -203,8 +200,8 @@ def get_nan_gaps(df: pd.DataFrame, long_feature: str) -> pd.DataFrame:
 
 def add_missed_transitions_col(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Adds column indicating if an F/T transition occurred during a NaN gap.
-    :param df: must contain soil_temp data
+    Adds a boolean column indicating if an F/T transition occurred during a NaN gap.
+    :param df: from get_nan_gaps(); must contain soil_temp data
     :return: df with added boolean column 'possible_transition'
     """
     required_cols = ['start_timestamp', 'end_timestamp', 'gap_length_hours', 'prev_soil_temp', 'next_soil_temp']
@@ -220,13 +217,15 @@ def add_missed_transitions_col(df: pd.DataFrame) -> pd.DataFrame:
 
     return df_copy
 
-def line_plot(df: pd.DataFrame, long_feature: str, station: str, start=None, end=None) -> None:
+def plot(df: pd.DataFrame, long_feature: str, station: str, form: str, start=None, end=None) -> None:
     """
-    Plots a line plot of long_feature vs the index.
+    Create a line or scatter plot of long_feature vs the index.
+    Scatter should be chosen if there's any datapoints that are surrounded by NaN.
     If end given but not start, plot will begin from the earliest timestamp in the df.
-    :param df:
+    :param df: from collect_data(), create_timestamp_col(), and convert_nan()
     :param long_feature: full variable name
     :param station: name of the ISMN station
+    :param form: line or scatter
     :param start: naive datetime.datetime object
     :param end: naive datetime.datetime object
     :return: None
@@ -238,28 +237,32 @@ def line_plot(df: pd.DataFrame, long_feature: str, station: str, start=None, end
         raise TypeError('long_feature must be a string')
     if not isinstance(station, str):
         raise TypeError('station must be a string')
+    if not isinstance(form, str):
+        raise TypeError('form must be a string')
     if df.index.dtype != 'datetime64[us, UTC]':
         raise Exception(f'Index of df must contain datetime64[us, UTC] data.')
 
     # check values
     if long_feature not in df.columns:
         raise Exception(f'Missing required column "{long_feature}".')
+    if form not in ['line', 'scatter']:
+        raise Exception(f'form must be "line" or "scatter"')
 
     # check start and end have correct data type
     if start is not None:
         if type(start) is not datetime.datetime:
-            raise Exception(f'start must be a datetime.datetime object.')
+            raise Exception(f'start must be a naive datetime.datetime object.')
         start = start.replace(tzinfo=pytz.UTC)
     if end is not None:
         if type(end) is not datetime.datetime:
-            raise Exception(f'end must be a datetime.datetime object.')
+            raise Exception(f'end must be a naive datetime.datetime object.')
         end = end.replace(tzinfo=pytz.UTC)
 
     # set date range for plot
     if start is None and end is not None:
         # input check
-        if end not in df.index:
-            raise Exception(f'df must contain data from {end}.')
+        if end > df.index[-1]:
+            raise Exception(f'{end} must not be after the last timestamp in df ({df.index[-1]}).')
 
         df_slice = df.loc[df.index < end]
     elif start is not None and end is not None:
@@ -268,17 +271,22 @@ def line_plot(df: pd.DataFrame, long_feature: str, station: str, start=None, end
             raise Exception(f'start and end cannot be the same.')
         if start > end:
             raise Exception(f'start must be before end.')
-        if start not in df.index:
-            raise Exception(f'df must contain data from {start}.')
-        if end not in df.index:
-            raise Exception(f'df must contain data from {end}.')
+        if start < df.index[0]:
+            raise Exception(f'{start} must not be before the first timestamp in df ({df.index[0]}).')
+        if end > df.index[-1]:
+            raise Exception(f'{end} must not be after the last timestamp in df ({df.index[-1]}).')
 
         df_slice = df.loc[start:end]
     else: # default to plotting all records
         df_slice = df
 
     df_slice = df_slice.sort_index()
-    plt.plot(df_slice.index, df_slice[long_feature])
+    if form == 'line':
+        plt.plot(df_slice.index, df_slice[long_feature])
+    elif form == 'scatter':
+        plt.scatter(df_slice.index, df_slice[long_feature])
+    else:
+        raise ValueError(f'form somehow changed from when it was checked to now.')
     plt.title(f'{station}, {long_feature}')
     plt.ylabel(long_feature)
     plt.xlabel('Date')
@@ -292,10 +300,10 @@ def line_plot(df: pd.DataFrame, long_feature: str, station: str, start=None, end
 def make_nan_window(df: pd.DataFrame, long_feature: str, start: datetime.datetime, end: datetime.datetime) -> pd.DataFrame:
     """
     Set records between start and end timestamps (inclusive) to np.nan.
-    :param df:
+    :param df: from collect_data(), create_timestamp_col(), and convert_nan()
     :param long_feature: full variable name
-    :param start: naive datetime.datetime object; must be in df.index
-    :param end: naive datetime.datetime object; must be in df.index
+    :param start: naive datetime.datetime object
+    :param end: naive datetime.datetime object
     :return: df with specified records set to NaN
     """
     # check data types
@@ -330,10 +338,10 @@ def make_nan_window(df: pd.DataFrame, long_feature: str, start: datetime.datetim
 def make_nan_indices(df: pd.DataFrame, long_feature: str, timestamps: pd.Index) -> pd.DataFrame:
     """
     Set long_feature of rows in df that match timestamps by index to np.nan.
-    :param df:
+    :param df: from collect_data(), create_timestamp_col(), and convert_nan()
     :param long_feature: full variable name
     :param timestamps: index of datetime64[us, UTC]
-    :return:
+    :return: df with specified records set to NaN
     """
     # check data types
     if not isinstance(df, pd.DataFrame):
