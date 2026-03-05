@@ -261,7 +261,7 @@ def plot(df: pd.DataFrame, long_feature: str, station: str, form: str, start=Non
     # set date range for plot
     if start is None and end is not None:
         # input check
-        if end > df.index[-1]:
+        if end > max(df.index):
             raise Exception(f'{end} must not be after the last timestamp in df ({df.index[-1]}).')
 
         df_slice = df.loc[df.index < end]
@@ -271,9 +271,9 @@ def plot(df: pd.DataFrame, long_feature: str, station: str, form: str, start=Non
             raise Exception(f'start and end cannot be the same.')
         if start > end:
             raise Exception(f'start must be before end.')
-        if start < df.index[0]:
+        if start < min(df.index):
             raise Exception(f'{start} must not be before the first timestamp in df ({df.index[0]}).')
-        if end > df.index[-1]:
+        if end > max(df.index):
             raise Exception(f'{end} must not be after the last timestamp in df ({df.index[-1]}).')
 
         df_slice = df.loc[start:end]
