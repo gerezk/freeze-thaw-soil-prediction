@@ -6,11 +6,13 @@ from pathlib import Path
 import pytz
 import numbers
 
-def collect_data(path: Path, depth: numbers.Real, short_feature: str, long_feature: str) -> pd.DataFrame:
+def collect_data(path: Path, max_depth: numbers.Real, short_feature: str, long_feature: str) -> pd.DataFrame:
     """
-    Collect long_feature data for a station into a list, excluding data beyond max depth, then merge into a single df
+    Collect long_feature data for a station into a list, excluding data beyond max_depth, then merge into a single df
+    The closest depth to max_depth will be selected
+    e.g. if 0.05 and 0.10 exists for max_depth=0.11, only 0.10 will be read.
     :param path: path to directory for a station
-    :param depth: max depth in meters, exclusive
+    :param max_depth: max depth in meters, exclusive
     :param short_feature: abbreviated variable name
     :param long_feature: full variable name
     :return: df
@@ -18,8 +20,8 @@ def collect_data(path: Path, depth: numbers.Real, short_feature: str, long_featu
     # check data types
     if not isinstance(path, Path):
         raise TypeError('path must be a Path object')
-    if not isinstance(depth, numbers.Real):
-        raise TypeError('depth must be a numeric')
+    if not isinstance(max_depth, numbers.Real):
+        raise TypeError('max_depth must be a numeric')
     if not isinstance(short_feature, str):
         raise TypeError('short_feature must be a string')
     if not isinstance(long_feature, str):
@@ -28,13 +30,11 @@ def collect_data(path: Path, depth: numbers.Real, short_feature: str, long_featu
     # check value of inputs
     if not path.is_dir():
         raise ValueError('path must point to a directory')
-    if depth < 0:
+    if max_depth < 0:
         raise ValueError('depth must be zero or positive')
 
-
-    col_names = ['UTC_date', 'UTC_time', long_feature, 'ISMN_data_quality', 'provider_data_quality']
-
-    dfs = []
+    # find depth closest to max_depth
+    depths = []
     for file in path.iterdir():
         filename = file.name
         filename_split = filename.split('_')
@@ -42,16 +42,34 @@ def collect_data(path: Path, depth: numbers.Real, short_feature: str, long_featu
         # skip if file extension is not .stm
         if not filename.endswith('.stm'):
             continue
-
         # skip if file contains wrong variable or soil depth
-        if filename_split[3] != short_feature or float(filename_split[4]) >= depth:
+        if filename_split[3] != short_feature or float(filename_split[4]) >= max_depth:
+            continue
+
+        depths.append(float(filename_split[4]))
+    depths = list(set(depths)) # remove duplicates
+    depths.sort()
+    closest_depth = depths[-1]
+
+    # collect data
+    dfs = []
+    col_names = ['UTC_date', 'UTC_time', long_feature, 'ISMN_data_quality', 'provider_data_quality']
+    for file in path.iterdir():
+        filename = file.name
+        filename_split = filename.split('_')
+
+        # skip if file extension is not .stm
+        if not filename.endswith('.stm'):
+            continue
+        # skip if file contains wrong variable or soil depth
+        if filename_split[3] != short_feature or float(filename_split[4]) != closest_depth:
             continue
 
         df = pd.read_csv(file, sep=' ', header=None, skiprows=1, names=col_names)
         dfs.append(df)
 
     if len(dfs) == 0:
-        raise Exception(f'No data found for {path.name}, depth={depth}, variable={long_feature}')
+        raise Exception(f'No data found for {path.name}, max_depth={max_depth}, variable={long_feature}')
 
     combined_df = pd.concat(dfs, axis=0, ignore_index=True)
 
