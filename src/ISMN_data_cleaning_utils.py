@@ -239,13 +239,14 @@ def plot(df: pd.DataFrame, long_feature: str, station: str, form: str, start=Non
     """
     Create a line or scatter plot of long_feature vs the index.
     Scatter should be chosen if there's any datapoints that are surrounded by NaN.
-    If end given but not start, plot will begin from the earliest timestamp in the df.
+    If end given but not start, the first timestamp in the df to end will be plotted.
+    If start given but not end, the start to the last timestamp in the df will be plotted.
     :param df: from collect_data(), create_timestamp_col(), and convert_nan()
     :param long_feature: full variable name
     :param station: name of the ISMN station
     :param form: line or scatter
-    :param start: naive datetime.datetime object
-    :param end: naive datetime.datetime object
+    :param start: naive datetime.datetime object (inclusive)
+    :param end: naive datetime.datetime object (inclusive)
     :return: None
     """
     # check data types
@@ -266,34 +267,35 @@ def plot(df: pd.DataFrame, long_feature: str, station: str, form: str, start=Non
     if form not in ['line', 'scatter']:
         raise Exception(f'form must be "line" or "scatter"')
 
-    # check start and end have correct data type
+    # check start and end independently
     if start is not None:
         if type(start) is not datetime.datetime:
             raise Exception(f'start must be a naive datetime.datetime object.')
         start = start.replace(tzinfo=pytz.UTC)
+        if start < min(df.index):
+            raise Exception(f'{start} must not be before the first timestamp in df: {min(df.index)}.')
+        if start >= max(df.index):
+            raise Exception(f'{start} must not be on or after the last timestamp in df: {max(df.index)}.')
     if end is not None:
         if type(end) is not datetime.datetime:
             raise Exception(f'end must be a naive datetime.datetime object.')
         end = end.replace(tzinfo=pytz.UTC)
+        if end > max(df.index):
+            raise Exception(f'{end} must not be after the last timestamp in df: {max(df.index)}.')
+        if end <= min(df.index):
+            raise Exception(f'{end} must not be before or on the first timestamp in df: {min(df.index)}.')
 
     # set date range for plot
     if start is None and end is not None:
-        # input check
-        if end > max(df.index):
-            raise Exception(f'{end} must not be after the last timestamp in df ({df.index[-1]}).')
-
-        df_slice = df.loc[df.index < end]
+        df_slice = df.loc[df.index <= end]
+    elif start is not None and end is None:
+        df_slice = df.loc[df.index >= start]
     elif start is not None and end is not None:
         # input check
         if start == end:
             raise Exception(f'start and end cannot be the same.')
         if start > end:
             raise Exception(f'start must be before end.')
-        if start < min(df.index):
-            raise Exception(f'{start} must not be before the first timestamp in df ({df.index[0]}).')
-        if end > max(df.index):
-            raise Exception(f'{end} must not be after the last timestamp in df ({df.index[-1]}).')
-
         df_slice = df.loc[start:end]
     else: # default to plotting all records
         df_slice = df
