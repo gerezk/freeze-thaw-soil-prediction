@@ -291,7 +291,7 @@ def plot(df: pd.DataFrame, long_feature: str, station: str, form: str, start=Non
     elif start is not None and end is None:
         df_slice = df.loc[df.index >= start]
     elif start is not None and end is not None:
-        # input check
+        # check relation between start and end
         if start == end:
             raise Exception(f'start and end cannot be the same.')
         if start > end:
