@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
+import plotly.express as px
 import datetime
 from pathlib import Path
 import pytz
@@ -428,3 +429,36 @@ def find_outlier_spikes(df: pd.DataFrame, long_feature: str, threshold: numbers.
     )
 
     return df_copy[df_copy['outlier']].index
+
+def map_stations(path: Path, save_image=False) -> None:
+    """
+    Show map displaying locations of ISMN stations.
+    :param path: path to ISMN_site_survey.csv
+    :param save_image: whether to save plot; takes a few seconds if True
+    :return: saved plot in ../images if save_image is True
+    """
+    df = pd.read_csv(path)
+
+    fig = px.scatter_geo(
+        df,
+        lat="LAT",
+        lon="LON",
+        color="Region",
+        hover_name="ISMN Station Name",
+    )
+    fig.update_layout(
+        margin=dict(l=0, r=120, t=0, b=0),
+        legend=dict(
+            x=1.02,  # move legend outside the plot
+            y=0.5,  # vertical center
+            xanchor="left",  # anchor legend's left side at x
+            yanchor="middle"
+        )
+    )
+    fig.update_geos(
+        fitbounds="locations",
+        showcountries=True
+    )
+    if save_image:
+        fig.write_image(Path("../images/map_ISMN_stations.png"))
+    fig.show()
