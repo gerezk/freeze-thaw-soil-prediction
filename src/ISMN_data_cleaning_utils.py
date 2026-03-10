@@ -112,27 +112,13 @@ def convert_nan(df: pd.DataFrame, long_variable: str) -> pd.DataFrame:
     if df.empty:
         raise ValueError('df must not be empty')
     # check input df index
-    _validate_time_index(df)
+    validate_time_index(df)
 
     df_copy = df.copy()
 
     df_copy.loc[df_copy['ISMN_data_quality'] != 'G', long_variable] = np.nan
 
     return df_copy
-
-def report_nan_count(df: pd.DataFrame, long_variable: str) -> None:
-    """
-    Prints the total number of nan values in the df and percent missing.
-    :param df: from collect_data(), create_timestamp_col(), and convert_nan()
-    :param long_variable: full variable name
-    :return: None
-    """
-    # check input values
-    if long_variable not in df.columns:
-        raise KeyError(f'df must contain {long_variable} column.')
-
-    na_count = df.isnull().sum()[long_variable]
-    print(f'There are {na_count} nulls out of {len(df)} datapoints ({round(na_count/len(df),2)}% missing).')
 
 def get_nan_gaps(df: pd.DataFrame, long_variable: str) -> pd.DataFrame:
     """
@@ -154,7 +140,7 @@ def get_nan_gaps(df: pd.DataFrame, long_variable: str) -> pd.DataFrame:
     if df.empty:
         raise ValueError('df must not be empty')
     # check input df index
-    _validate_time_index(df)
+    validate_time_index(df)
 
     df_copy = df.copy()
 
@@ -242,7 +228,7 @@ def plot(df: pd.DataFrame, long_variable: str, station: str, form: str, start=No
     if df.empty:
         raise ValueError('df must not be empty')
     # check input df index
-    _validate_time_index(df)
+    validate_time_index(df)
 
     # check start and end independently
     if start is not None:
@@ -316,7 +302,7 @@ def make_nan_window(df: pd.DataFrame, long_variable: str, start: datetime.dateti
     if long_variable not in df.columns:
         raise KeyError(f'Missing required column "{long_variable}".')
     # check input df index
-    _validate_time_index(df)
+    validate_time_index(df)
 
     # add timezone
     start = start.replace(tzinfo=df.index.tz)
@@ -354,7 +340,7 @@ def make_nan_indices(df: pd.DataFrame, long_variable: str, timestamps: pd.Dateti
     if timestamps.tz is None:
         raise ValueError("timestamps must be timezone-aware")
     # check input df index
-    _validate_time_index(df)
+    validate_time_index(df)
 
     df_copy = df.copy()
 
@@ -382,7 +368,7 @@ def find_outlier_spikes(df: pd.DataFrame, long_variable: str, threshold: numbers
     if threshold <= 0:
         raise ValueError(f'threshold must be greater than 0.')
     # check input df index
-    _validate_time_index(df)
+    validate_time_index(df)
 
     df_copy = df.copy()
     s = df[long_variable]
@@ -445,7 +431,12 @@ def map_stations(path: Path, save_image=False) -> None:
         fig.write_image(Path("../images/map_ISMN_stations.png"))
     fig.show()
 
-def _validate_time_index(df):
+def validate_time_index(df):
+    """
+    Validate time index of df.
+    :param df: from preprocessing
+    :return: None
+    """
     if not isinstance(df.index, pd.DatetimeIndex):
         raise TypeError("df index must be DatetimeIndex")
     dt_index = cast(pd.DatetimeIndex, df.index)
