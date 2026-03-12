@@ -7,7 +7,8 @@ from typing import cast
 # Visualization
 # --------------------
 
-def plot(df: pd.DataFrame, variable: str, station: str, system: str, form: str, start=None, end=None) -> None:
+def plot(df: pd.DataFrame, variable: str, station: str, system: str, form: str,
+         y_label=None, start=None, end=None) -> None:
     """
     Create a line or scatter plot of variable vs the index.
     Scatter should be chosen if there's any datapoints that are surrounded by NaN.
@@ -18,6 +19,7 @@ def plot(df: pd.DataFrame, variable: str, station: str, system: str, form: str, 
     :param station: name of the ISMN station
     :param system: name of the sensor system
     :param form: line or scatter, case-insensitive
+    :param y_label: y-label for plot
     :param start: naive datetime.datetime object (inclusive)
     :param end: naive datetime.datetime object (inclusive)
     :return: None
@@ -33,6 +35,9 @@ def plot(df: pd.DataFrame, variable: str, station: str, system: str, form: str, 
         raise TypeError("system must be a string")
     if not isinstance(form, str):
         raise TypeError("form must be a string")
+    if y_label is not None:
+        if not isinstance(y_label, str):
+            raise TypeError("y_label must be a string")
     # check input values
     if df.empty:
         raise ValueError('df must not be empty')
@@ -84,7 +89,10 @@ def plot(df: pd.DataFrame, variable: str, station: str, system: str, form: str, 
     else:
         raise ValueError(f'form somehow changed to invalid value from when it was checked to now')
     plt.title(f'{station}, {system}')
-    plt.ylabel(variable)
+    if y_label is not None:
+        plt.ylabel(y_label)
+    else:
+        plt.ylabel(variable)
     plt.xlabel('Date')
     plt.xticks(rotation=30)
 
