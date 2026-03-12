@@ -17,7 +17,7 @@ def collect_data(path: Path, station_name: str, system: str) -> pd.DataFrame:
     """
     # check input data types
     if not isinstance(path, Path):
-        raise TypeError("raw_data_dir_path must be a Path object")
+        raise TypeError("path must be a Path object")
     if not isinstance(station_name, str):
         raise TypeError("station_name must be a string")
     if not isinstance(system, str):
@@ -44,3 +44,32 @@ def collect_data(path: Path, station_name: str, system: str) -> pd.DataFrame:
             return df
 
     raise ValueError(f'No data was found for {station_name}, {system} in {path}')
+
+def check_df_cols(df: pd.DataFrame, system: str) -> None:
+    """
+    Check if df contains all required ASCAT or ERA5 columns
+    :param df: from collect_data()
+    :param system: ASCAT or ERA5, case-insensitive
+    :return:
+    """
+    # check input data type
+    if not isinstance(system, str):
+        raise TypeError("system must be a string")
+    # check input value
+    if system.upper() not in ["ASCAT", "ERA5"]:
+        raise ValueError("system must be ASCAT or ERA5 (case-insensitive)")
+
+    if system.upper() == "ASCAT":
+        required_cols = {'time', 'backscatter40', 'swath_indicator', 'as_des_pass', 'sat_id'}
+    else: # ERA5
+        required_cols = {'time', 'skt', 'stl1', 'stl2', 'swvl1', 'swvl2', 'sd'}
+
+    if not required_cols.issubset(df.columns):
+        raise KeyError(f'{system} df must contain all of these columns: {str(required_cols)}')
+
+def round_nearest_hour(df: pd.DataFrame) -> pd.DataFrame:
+    """
+
+    :param df:
+    :return:
+    """

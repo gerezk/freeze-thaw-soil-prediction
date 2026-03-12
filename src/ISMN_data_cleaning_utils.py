@@ -89,7 +89,7 @@ def create_timestamp_col(df: pd.DataFrame) -> pd.DataFrame:
     """
     # check input values
     if not {'UTC_date', 'UTC_time'}.issubset(df.columns):
-        raise KeyError('df must contain UTC_date and UTC_time')
+        raise KeyError('df must contain UTC_date and UTC_time columns')
     if df.empty:
         raise ValueError('df must not be empty')
 
