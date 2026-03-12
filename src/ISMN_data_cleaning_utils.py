@@ -7,6 +7,8 @@ from pathlib import Path
 import numbers
 from typing import cast
 
+from src.general_data_cleaning_utils import validate_time_index
+
 # --------------------
 # Data Preprocessing
 # --------------------
@@ -326,83 +328,6 @@ def make_nan_indices(df: pd.DataFrame, long_variable: str, timestamps: pd.Dateti
 # Visualization
 # --------------------
 
-def plot(df: pd.DataFrame, long_variable: str, station: str, form: str, start=None, end=None) -> None:
-    """
-    Create a line or scatter plot of long_variable vs the index.
-    Scatter should be chosen if there's any datapoints that are surrounded by NaN.
-    If end given but not start, the first timestamp in the df to end will be plotted.
-    If start given but not end, the start to the last timestamp in the df will be plotted.
-    :param df: from collect_data(), create_timestamp_col(), and convert_nan()
-    :param long_variable: full variable name
-    :param station: name of the ISMN station
-    :param form: line or scatter
-    :param start: naive datetime.datetime object (inclusive)
-    :param end: naive datetime.datetime object (inclusive)
-    :return: None
-    """
-    # check data types
-    if not isinstance(station, str):
-        raise TypeError("station must be a string")
-    # check input values
-    if long_variable not in df.columns:
-        raise KeyError(f'df missing required column "{long_variable}".')
-    if form not in ['line', 'scatter']:
-        raise ValueError(f'form must be "line" or "scatter"')
-    if df.empty:
-        raise ValueError('df must not be empty')
-    # check input df index
-    validate_time_index(df)
-
-    # check start and end independently
-    if start is not None:
-        if not isinstance(start, datetime.datetime):
-            raise TypeError(f'start must be a naive datetime.datetime object.')
-        start = start.replace(tzinfo=df.index.tz)
-        if start < min(df.index):
-            raise ValueError(f'{start} must not be before the first timestamp in df: {min(df.index)}.')
-        if start >= max(df.index):
-            raise ValueError(f'{start} must not be on or after the last timestamp in df: {max(df.index)}.')
-    if end is not None:
-        if not isinstance(end, datetime.datetime):
-            raise TypeError(f'end must be a naive datetime.datetime object.')
-        end = end.replace(tzinfo=df.index.tz)
-        if end > max(df.index):
-            raise ValueError(f'{end} must not be after the last timestamp in df: {max(df.index)}.')
-        if end <= min(df.index):
-            raise ValueError(f'{end} must not be before or on the first timestamp in df: {min(df.index)}.')
-
-    # set date range for plot
-    if start is None and end is not None:
-        df_slice = df.loc[df.index <= end]
-    elif start is not None and end is None:
-        df_slice = df.loc[df.index >= start]
-    elif start is not None and end is not None:
-        # check relation between start and end
-        if start == end:
-            raise ValueError(f'start and end cannot be the same.')
-        if start > end:
-            raise ValueError(f'start must be before end.')
-        df_slice = df.loc[start:end]
-    else: # default to plotting all records
-        df_slice = df
-
-    df_slice = df_slice.sort_index()
-    if form == 'line':
-        plt.plot(df_slice.index, df_slice[long_variable])
-    elif form == 'scatter':
-        plt.scatter(df_slice.index, df_slice[long_variable])
-    else:
-        raise ValueError(f'form somehow changed to invalid value from when it was checked to now')
-    plt.title(f'{station}, {long_variable}')
-    plt.ylabel(long_variable)
-    plt.xlabel('Date')
-    plt.xticks(rotation=30)
-
-    if long_variable == 'soil_temp':
-        plt.axhline(y=0, color='k')
-
-    plt.show()
-
 def map_stations(path: Path, save_image=False) -> None:
     """
     Show map displaying locations of ISMN stations.
@@ -444,19 +369,3 @@ def map_stations(path: Path, save_image=False) -> None:
     if save_image:
         fig.write_image(Path("../images/map_ISMN_stations.png"))
     fig.show()
-
-# --------------------
-# Input Checking
-# --------------------
-
-def validate_time_index(df):
-    """
-    Validate time index of df.
-    :param df: from preprocessing
-    :return: None
-    """
-    if not isinstance(df.index, pd.DatetimeIndex):
-        raise TypeError("df index must be DatetimeIndex")
-    dt_index = cast(pd.DatetimeIndex, df.index)
-    if dt_index.tz is None:
-        raise ValueError("df index must be timezone-aware")

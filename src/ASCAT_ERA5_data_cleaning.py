@@ -1,5 +1,6 @@
-from pathlib import Path
 import pandas as pd
+import matplotlib.pyplot as plt
+from pathlib import Path
 
 # --------------------
 # Data Preprocessing
@@ -77,7 +78,7 @@ def round_nearest_hour(df: pd.DataFrame) -> pd.DataFrame:
     df_copy = df.copy()
 
     df_copy["time"] = pd.to_datetime(df_copy["time"], utc=True)
-    df_copy["time"] = df_copy["time"].dt.round("H")
+    df_copy["time"] = df_copy["time"].dt.round("h")
     df_copy = df_copy.set_index("time")
 
     return df_copy
