@@ -7,11 +7,17 @@ from pathlib import Path
 import numbers
 from typing import cast
 
+# --------------------
+# Data Preprocessing
+# --------------------
+
 def collect_data(path: Path, max_depth: numbers.Real, short_variable: str, long_variable: str) -> pd.DataFrame:
     """
     Collect long_variable data for a station into a list, excluding data beyond max_depth, then merge into a single df
-    The closest depth to max_depth will be selected
+    The closest depth to max_depth will be selected,
     e.g. if 0.05 and 0.10 exists for max_depth=0.11, only 0.10 will be read.
+    The ISMN data filenames must follow this structure:
+    CSE_Network_Station_Variablename_depthfrom_depthto_startdate_enddate.stm
     :param path: path to directory for a station
     :param max_depth: max depth in meters, exclusive
     :param short_variable: abbreviated variable name
@@ -120,6 +126,50 @@ def convert_nan(df: pd.DataFrame, long_variable: str) -> pd.DataFrame:
 
     return df_copy
 
+def find_outlier_spikes(df: pd.DataFrame, long_variable: str, threshold: numbers.Real) -> pd.DatetimeIndex:
+    """
+    Detect single datapoint outliers for column long_variable in df based on threshold.
+    A single datapoint is flagged as an outlier if the absolute differences between it and BOTH immediate non-NaN
+    neighbors are greater than threshold.
+    :param df: after processing with collect_data(), create_timestamp_col(), and convert_nan()
+    :param long_variable: full variable name
+    :param threshold: number
+    :return: pd.DatetimeIndex with timezone containing timestamps of outliers
+    """
+    # check input data types
+    if not isinstance(threshold, numbers.Real):
+        raise TypeError("threshold must be a real number")
+    # check input values
+    if long_variable not in df.columns:
+        raise KeyError(f'Missing required column "{long_variable}".')
+    if threshold <= 0:
+        raise ValueError(f'threshold must be greater than 0.')
+    # check input df index
+    validate_time_index(df)
+
+    df_copy = df.copy()
+    s = df[long_variable]
+
+    # nearest valid neighbor to the left
+    prev_valid = s.ffill().shift(1)
+
+    # nearest valid neighbor to the right
+    next_valid = s.bfill().shift(-1)
+
+    prev_diff = (s - prev_valid).abs()
+    next_diff = (s - next_valid).abs()
+
+    df_copy['outlier'] = (
+        (prev_diff > threshold) &
+        (next_diff > threshold)
+    )
+
+    return df_copy[df_copy['outlier']].index
+
+# --------------------
+# NaN Handling
+# --------------------
+
 def get_nan_gaps(df: pd.DataFrame, long_variable: str) -> pd.DataFrame:
     """
     Determines nan gaps in the long_variable column of the df.
@@ -203,6 +253,79 @@ def add_missed_transitions_col(df: pd.DataFrame) -> pd.DataFrame:
 
     return df_copy
 
+def make_nan_window(df: pd.DataFrame, long_variable: str, start: datetime.datetime, end: datetime.datetime) -> pd.DataFrame:
+    """
+    Set records between start and end timestamps (inclusive) to np.nan.
+    :param df: from collect_data(), create_timestamp_col(), and convert_nan()
+    :param long_variable: full variable name
+    :param start: naive datetime.datetime object
+    :param end: naive datetime.datetime object
+    :return: df with specified records set to NaN
+    """
+    # check data types
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError('df must be a DataFrame')
+    if not isinstance(long_variable, str):
+        raise TypeError('long_variable must be a string')
+    if not isinstance(start, datetime.datetime):
+        raise TypeError('start must be a naive datetime.datetime object')
+    if not isinstance(end, datetime.datetime):
+        raise TypeError('end must be a naive datetime.datetime object')
+    # check values
+    if long_variable not in df.columns:
+        raise KeyError(f'Missing required column "{long_variable}".')
+    # check input df index
+    validate_time_index(df)
+
+    # add timezone
+    start = start.replace(tzinfo=df.index.tz)
+    end = end.replace(tzinfo=df.index.tz)
+
+    # check start and end
+    if start not in df.index:
+        raise KeyError(f'df must contain data from {start}.')
+    if end not in df.index:
+        raise KeyError(f'df must contain data from {end}.')
+
+    df_copy = df.copy()
+    df_copy.loc[start:end, long_variable] = np.nan
+
+    return df_copy
+
+def make_nan_indices(df: pd.DataFrame, long_variable: str, timestamps: pd.DatetimeIndex) -> pd.DataFrame:
+    """
+    Set long_variable of rows in df that match timestamps by index to np.nan.
+    :param df: from collect_data(), create_timestamp_col(), and convert_nan()
+    :param long_variable: full variable name
+    :param timestamps: timezone-aware pd.DatetimeIndex
+    :return: df with specified records set to NaN
+    """
+    # check data types
+    if not isinstance(df, pd.DataFrame):
+        raise TypeError('df must be a DataFrame')
+    if not isinstance(long_variable, str):
+        raise TypeError('long_variable must be a string')
+    if not isinstance(timestamps, pd.DatetimeIndex):
+        raise TypeError("timestamps must be a pd.DatetimeIndex")
+    # check values
+    if long_variable not in df.columns:
+        raise KeyError(f'Missing required column "{long_variable}".')
+    if timestamps.tz is None:
+        raise ValueError("timestamps must be timezone-aware")
+    # check input df index
+    validate_time_index(df)
+
+    df_copy = df.copy()
+
+    # use default exception throwing if an index in timestamps is not in df.DatetimeIndex
+    df_copy.loc[timestamps.to_list(), [long_variable]] = np.nan
+
+    return df_copy
+
+# --------------------
+# Visualization
+# --------------------
+
 def plot(df: pd.DataFrame, long_variable: str, station: str, form: str, start=None, end=None) -> None:
     """
     Create a line or scatter plot of long_variable vs the index.
@@ -280,115 +403,6 @@ def plot(df: pd.DataFrame, long_variable: str, station: str, form: str, start=No
 
     plt.show()
 
-def make_nan_window(df: pd.DataFrame, long_variable: str, start: datetime.datetime, end: datetime.datetime) -> pd.DataFrame:
-    """
-    Set records between start and end timestamps (inclusive) to np.nan.
-    :param df: from collect_data(), create_timestamp_col(), and convert_nan()
-    :param long_variable: full variable name
-    :param start: naive datetime.datetime object
-    :param end: naive datetime.datetime object
-    :return: df with specified records set to NaN
-    """
-    # check data types
-    if not isinstance(df, pd.DataFrame):
-        raise TypeError('df must be a DataFrame')
-    if not isinstance(long_variable, str):
-        raise TypeError('long_variable must be a string')
-    if not isinstance(start, datetime.datetime):
-        raise TypeError('start must be a naive datetime.datetime object')
-    if not isinstance(end, datetime.datetime):
-        raise TypeError('end must be a naive datetime.datetime object')
-    # check values
-    if long_variable not in df.columns:
-        raise KeyError(f'Missing required column "{long_variable}".')
-    # check input df index
-    validate_time_index(df)
-
-    # add timezone
-    start = start.replace(tzinfo=df.index.tz)
-    end = end.replace(tzinfo=df.index.tz)
-
-    # check start and end
-    if start not in df.index:
-        raise KeyError(f'df must contain data from {start}.')
-    if end not in df.index:
-        raise KeyError(f'df must contain data from {end}.')
-
-    df_copy = df.copy()
-    df_copy.loc[start:end, long_variable] = np.nan
-
-    return df_copy
-
-def make_nan_indices(df: pd.DataFrame, long_variable: str, timestamps: pd.DatetimeIndex) -> pd.DataFrame:
-    """
-    Set long_variable of rows in df that match timestamps by index to np.nan.
-    :param df: from collect_data(), create_timestamp_col(), and convert_nan()
-    :param long_variable: full variable name
-    :param timestamps: timezone-aware pd.DatetimeIndex
-    :return: df with specified records set to NaN
-    """
-    # check data types
-    if not isinstance(df, pd.DataFrame):
-        raise TypeError('df must be a DataFrame')
-    if not isinstance(long_variable, str):
-        raise TypeError('long_variable must be a string')
-    if not isinstance(timestamps, pd.DatetimeIndex):
-        raise TypeError("timestamps must be a pd.DatetimeIndex")
-    # check values
-    if long_variable not in df.columns:
-        raise KeyError(f'Missing required column "{long_variable}".')
-    if timestamps.tz is None:
-        raise ValueError("timestamps must be timezone-aware")
-    # check input df index
-    validate_time_index(df)
-
-    df_copy = df.copy()
-
-    # use default exception throwing if an index in timestamps is not in df.DatetimeIndex
-    df_copy.loc[timestamps.to_list(), [long_variable]] = np.nan
-
-    return df_copy
-
-def find_outlier_spikes(df: pd.DataFrame, long_variable: str, threshold: numbers.Real) -> pd.DatetimeIndex:
-    """
-    Detect single datapoint outliers for column long_variable in df based on threshold.
-    A single datapoint is flagged as an outlier if the absolute differences between it and BOTH immediate non-NaN
-    neighbors are greater than threshold.
-    :param df: after processing with collect_data(), create_timestamp_col(), and convert_nan()
-    :param long_variable: full variable name
-    :param threshold: number
-    :return: pd.DatetimeIndex with timezone containing timestamps of outliers
-    """
-    # check input data types
-    if not isinstance(threshold, numbers.Real):
-        raise TypeError("threshold must be a real number")
-    # check input values
-    if long_variable not in df.columns:
-        raise KeyError(f'Missing required column "{long_variable}".')
-    if threshold <= 0:
-        raise ValueError(f'threshold must be greater than 0.')
-    # check input df index
-    validate_time_index(df)
-
-    df_copy = df.copy()
-    s = df[long_variable]
-
-    # nearest valid neighbor to the left
-    prev_valid = s.ffill().shift(1)
-
-    # nearest valid neighbor to the right
-    next_valid = s.bfill().shift(-1)
-
-    prev_diff = (s - prev_valid).abs()
-    next_diff = (s - next_valid).abs()
-
-    df_copy['outlier'] = (
-        (prev_diff > threshold) &
-        (next_diff > threshold)
-    )
-
-    return df_copy[df_copy['outlier']].index
-
 def map_stations(path: Path, save_image=False) -> None:
     """
     Show map displaying locations of ISMN stations.
@@ -430,6 +444,10 @@ def map_stations(path: Path, save_image=False) -> None:
     if save_image:
         fig.write_image(Path("../images/map_ISMN_stations.png"))
     fig.show()
+
+# --------------------
+# Input Checking
+# --------------------
 
 def validate_time_index(df):
     """
