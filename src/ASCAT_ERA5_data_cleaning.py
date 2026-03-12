@@ -69,7 +69,15 @@ def check_df_cols(df: pd.DataFrame, system: str) -> None:
 
 def round_nearest_hour(df: pd.DataFrame) -> pd.DataFrame:
     """
-
-    :param df:
-    :return:
+    Rounds timestamps to nearest hour then sets as the index.
+    ASSUMPTION: satellite passes are infrequent enough that duplicate timestamps won't be created
+    :param df: from collect_data() and check_df_cols()
+    :return: pandas DataFrame with DatetimeIndex of rounded timestamps
     """
+    df_copy = df.copy()
+
+    df_copy["time"] = pd.to_datetime(df_copy["time"], utc=True)
+    df_copy["time"] = df_copy["time"].dt.round("H")
+    df_copy = df_copy.set_index("time")
+
+    return df_copy
