@@ -1,11 +1,9 @@
 import pandas as pd
 import numpy as np
-from matplotlib import pyplot as plt
 import plotly.express as px
 import datetime
 from pathlib import Path
 import numbers
-from typing import cast
 
 from src.general_data_cleaning_utils import validate_time_index
 
@@ -37,9 +35,9 @@ def collect_data(path: Path, max_depth: numbers.Real, short_variable: str, long_
         raise TypeError("long_variable must be a string")
     # check input values
     if not path.is_dir():
-        raise ValueError('path must point to a directory')
+        raise NotADirectoryError(f'{path} must point to a directory')
     if max_depth < 0:
-        raise ValueError('depth must be zero or positive')
+        raise ValueError('depth must be non-negative')
 
     # find depth closest to max_depth
     depths = []

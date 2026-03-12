@@ -1,3 +1,7 @@
+# Do not push ISMN data to repo
+data/raw/ISMN
+data/cleaned/ISMN
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

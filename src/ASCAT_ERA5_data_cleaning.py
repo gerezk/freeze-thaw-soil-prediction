@@ -1,50 +1,55 @@
 import pandas as pd
-import matplotlib.pyplot as plt
 from pathlib import Path
 
 # --------------------
 # Data Preprocessing
 # --------------------
 
-def collect_data(path: Path, station_name: str, system: str) -> pd.DataFrame:
+# TODO be able to read raw data downloaded from TU Wien Repo
+
+def collect_data(data_path: Path, ismn_site_survey_path: Path, station_name: str, system: str) -> pd.DataFrame:
     """
     Collect a single ASCAT or ERA5 csv file. Can handle ASCAT and ERA5 data being mixed in the same directory.
-    The filename must follow this format: {gpi}_{LON:3f}_{LAT:3f}_{station_name}_{system}_time_series.csv
-    ASSUMPTION: data files are uniquely identified by {station_name} and {system}.
-    :param path: path to directory containing ASCAT or ERA5 csv file
-    :param station_name: name of the ISMN station, case-insensitive
+    The filename must follow this format: {gpi}_{LON:3f}_{LAT:3f}_{system}_time_series.csv
+    :param data_path: path to directory containing ASCAT or ERA5 csv file
+    :param ismn_site_survey_path: path to file containing ISMN station data
+    :param station_name: must match exactly the names in ISMNS_site_survey.csv
     :param system: ASCAT or ERA5, case-insensitive
     :return: pandas DataFrame
     """
     # check input data types
-    if not isinstance(path, Path):
+    if not isinstance(data_path, Path):
         raise TypeError("path must be a Path object")
-    if not isinstance(station_name, str):
-        raise TypeError("station_name must be a string")
+    if not isinstance(ismn_site_survey_path, Path):
+        raise TypeError("ismn_site_survey_path must be a Path object")
     if not isinstance(system, str):
         raise TypeError("system must be a string")
     # check input values
-    if not path.is_dir():
-        raise ValueError(f'path ({path}) must point to a directory')
+    if not data_path.is_dir():
+        raise NotADirectoryError(f'{data_path} must point to a directory')
+    if not ismn_site_survey_path.is_file():
+        raise FileNotFoundError(f'File not found at{ismn_site_survey_path}')
     if system.upper() not in ["ASCAT", "ERA5"]:
         raise ValueError("system must be ASCAT or ERA5 (case-insensitive)")
 
-    station_name = station_name.upper()
-    system = system.upper()
-    for file in path.iterdir():
+    # get unique key for raw data file (lon, lat)
+    ismn_sites = pd.read_csv(ismn_site_survey_path)
+    site_info = ismn_sites[ismn_sites.ISMN_Station_Name == station_name]
+    lon, lat = format(site_info.LON.item(),'.3f'), format(site_info.LAT.item(),'.3f')
+
+    for file in data_path.iterdir():
         filename = file.name
         filename_split = filename.split('_')
 
-        if file.suffix != '.csv' or len(filename_split) != 7:
+        if file.suffix != '.csv' or len(filename_split) != 6:
             continue
 
-        file_station_name = filename_split[3].upper()
-        file_system = filename_split[4].upper()
-        if station_name == file_station_name and system == file_system:
+        # str matching only
+        if filename_split[1] == lon and filename_split[2] == lat and filename_split[3].lower() == system.lower():
             df = pd.read_csv(file)
             return df
 
-    raise ValueError(f'No data was found for {station_name}, {system} in {path}')
+    raise ValueError(f'No data was found for {station_name}, {system} in {data_path}')
 
 def check_df_cols(df: pd.DataFrame, system: str) -> None:
     """
@@ -70,7 +75,7 @@ def check_df_cols(df: pd.DataFrame, system: str) -> None:
 
 def round_nearest_hour(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Rounds timestamps to nearest hour then sets as the index.
+    Rounds timestamps to nearest hour then sets as the index. Indirect form of interpolation.
     ASSUMPTION: satellite passes are infrequent enough that duplicate timestamps won't be created
     :param df: from collect_data() and check_df_cols()
     :return: pandas DataFrame with DatetimeIndex of rounded timestamps

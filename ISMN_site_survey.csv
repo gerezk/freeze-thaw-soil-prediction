@@ -1,11 +1,11 @@
-Index,ISMN Station Name,Region,LAT,LON,Soil Depths (cm),Collection Start,Collection End,Notes
-1,SOD012,Finland,67.36179,26.63378,"5, 10",2011-09-18,Current,Some missing data and anomalies but mostly good
-2,SOD103,Finland,67.35917,26.68594,"5, 10",2012-10-14,Current,Some missing data and anomalies but mostly good
-3,NST_07,Sichuan,33.98330,102.35000,"5, 10",2008-06-28,2018-12-30,"Some missing data, but many freeze-thaw cycles present"
-4,NST_09,Sichuan,33.90000,102.55000,"5, 10",2008-06-29,2019-05-30,"Some missing data, but many freeze-thaw cycles present"
-5,L38,Tibet,31.03300,91.67900,"5, 10, 20, 40",2010-08-01,2016-09-19,Good quality
-6,L23,Tibet,31.10700,92.30900,"5, 10, 20, 40",2010-08-01,2016-09-19,Good quality
-7,Nenana,Alaska,64.69,-148.91,"5, 10, 20, 50, 100",2012-09-21,Current,Good quality and has snow data
-8,Gobblers Knob,Alaska,66.75,-150.67,"5, 20, 50",2016-10-01,Current,Good quality and has snow data
-9,Jamestown_38_WSW,North Dakota,46.77020,-99.47780,"0, 5, 10",2008-07-30,Current,Good quality and has surface temperature data
-10,Aberdeen_35_WNW,South Dakota,45.71150,-99.12960,"0, 5, 10",2007-06-26,Current,Good quality and has surface temperature data
+Index,ISMN_Station_Name,Region,LAT,LON,Soil_Depths_(cm),Collection_Start,Collection_End,Notes
+1,SOD012,Finland,67.362,26.634,"5, 10",2011-09-18,Current,Some missing data and anomalies but mostly good
+2,SOD103,Finland,67.359,26.686,"5, 10",2012-10-14,Current,Some missing data and anomalies but mostly good
+3,NST-07,Sichuan,33.983,102.350,"5, 10",2008-06-28,2018-12-30,"Some missing data, but many freeze-thaw cycles present"
+4,NST-09,Sichuan,33.900,102.550,"5, 10",2008-06-29,2019-05-30,"Some missing data, but many freeze-thaw cycles present"
+5,L38,Tibet,31.033,91.679,"5, 10, 20, 40",2010-08-01,2016-09-19,Good quality
+6,L23,Tibet,31.107,92.309,"5, 10, 20, 40",2010-08-01,2016-09-19,Good quality
+7,Nenana,Alaska,64.690,-148.910,"5, 10, 20, 50, 100",2012-09-21,Current,Good quality and has snow data
+8,GobblersKnob,Alaska,66.750,-150.670,"5, 20, 50",2016-10-01,Current,Good quality and has snow data
+9,Jamestown-38-WSW,North Dakota,46.770,-99.478,"0, 5, 10",2008-07-30,Current,Good quality and has surface temperature data
+10,Aberdeen-35-WNW,South Dakota,45.712,-99.130,"0, 5, 10",2007-06-26,Current,Good quality and has surface temperature data

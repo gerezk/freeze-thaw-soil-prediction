@@ -105,7 +105,7 @@ def plot(df: pd.DataFrame, variable: str, station: str, system: str, form: str,
 # Input Checking
 # --------------------
 
-def validate_time_index(df):
+def validate_time_index(df: pd.DataFrame):
     """
     Validate time index of df.
     :param df: from preprocessing
