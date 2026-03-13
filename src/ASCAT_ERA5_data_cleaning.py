@@ -5,8 +5,6 @@ from pathlib import Path
 # Data Preprocessing
 # --------------------
 
-# TODO be able to read raw data downloaded from TU Wien Repo
-
 def collect_data(data_path: Path, ismn_site_survey_path: Path, station_name: str, system: str) -> pd.DataFrame:
     """
     Collect a single ASCAT or ERA5 csv file. Can handle ASCAT and ERA5 data being mixed in the same directory.

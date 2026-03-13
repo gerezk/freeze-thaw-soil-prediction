@@ -1,6 +1,5 @@
-# Do not push ISMN data to repo
-data/raw/ISMN
-data/cleaned/ISMN
+# Do not push data to repo
+data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
