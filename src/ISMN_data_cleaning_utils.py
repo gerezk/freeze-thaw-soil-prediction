@@ -349,7 +349,7 @@ def map_stations(path: Path, save_image=False) -> None:
         lat="LAT",
         lon="LON",
         color="Region",
-        hover_name="ISMN Station Name",
+        hover_name="ISMN_Station_Name",
     )
     fig.update_layout(
         margin=dict(l=0, r=120, t=0, b=0),
