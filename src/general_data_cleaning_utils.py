@@ -1,7 +1,42 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import datetime
+from datetime import datetime, timedelta
 from typing import cast
+from pathlib import Path
+
+# --------------------
+# Preprocessing
+# --------------------
+
+def filter_df(df: pd.DataFrame, date_range: list[datetime]) -> pd.DataFrame:
+    """
+    Filters dataframe based on date range (inclusive, exclusive)
+    :param df: has aware DatetimeIndex
+    :param date_range: list of datetimes of length 2
+    :return: filtered dataframe
+    """
+    df_copy = df.copy()
+
+    if date_range is not None:
+        date_range = date_range.copy()
+        date_range.sort()
+        date_range[0] = date_range[0].replace(tzinfo=df_copy.index.tz)
+        date_range[1] = date_range[1].replace(tzinfo=df_copy.index.tz)
+
+        # check validity of date_range
+        if date_range[0] > max(df.index):
+            raise ValueError('The start date must be prior to the last timestamp in df.')
+        if date_range[1] <= min(df.index):
+            raise ValueError('The end date must be after to the first timestamp in df.')
+
+        if date_range[0] < min(df_copy.index):
+            print(f'Warning: {date_range[0]} is before the earliest timestamp in df: {min(df_copy.index)}.')
+        if date_range[1] > max(df_copy.index):
+            print(f'Warning: {date_range[1]} is after the latest timestamp in df: {max(df_copy.index)}.')
+        df_copy = df_copy[df_copy.index >= date_range[0]]
+        df_copy = df_copy[df_copy.index < date_range[1]]
+
+    return df_copy
 
 # --------------------
 # Visualization
@@ -50,7 +85,7 @@ def plot(df: pd.DataFrame, variable: str, station: str, system: str, form: str,
 
     # check start and end independently
     if start is not None:
-        if not isinstance(start, datetime.datetime):
+        if not isinstance(start, datetime):
             raise TypeError(f'start must be a naive datetime.datetime object.')
         start = start.replace(tzinfo=df.index.tz)
         if start < min(df.index):
@@ -58,7 +93,7 @@ def plot(df: pd.DataFrame, variable: str, station: str, system: str, form: str,
         if start >= max(df.index):
             raise ValueError(f'{start} must not be on or after the last timestamp in df: {max(df.index)}.')
     if end is not None:
-        if not isinstance(end, datetime.datetime):
+        if not isinstance(end, datetime):
             raise TypeError(f'end must be a naive datetime.datetime object.')
         end = end.replace(tzinfo=df.index.tz)
         if end > max(df.index):
@@ -116,3 +151,21 @@ def validate_time_index(df: pd.DataFrame):
     dt_index = cast(pd.DatetimeIndex, df.index)
     if dt_index.tz is None:
         raise ValueError("df index must be timezone-aware")
+
+def validate_data_cleaning_input(data_path: Path, date_range: list[datetime]) -> None:
+    """
+    Validate inputs for data cleaning functions in notebooks.
+    :param data_path:
+    :param date_range:
+    :return: None
+    """
+    if date_range is not None:
+        if not isinstance(date_range, list):
+            raise TypeError('date_range must be a list')
+        if len(date_range) != 2:
+            raise ValueError('date_range must be a list of length 2')
+        if not isinstance(date_range[0], datetime) or not isinstance(date_range[1], datetime):
+            raise TypeError('date_range must be a list of datetime objects')
+    # check input values
+    if not data_path.is_dir():
+        raise NotADirectoryError(f'{data_path} must be a directory')

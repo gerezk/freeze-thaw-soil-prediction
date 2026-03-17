@@ -71,7 +71,7 @@ def check_df_cols(df: pd.DataFrame, system: str) -> None:
     if not required_cols.issubset(df.columns):
         raise KeyError(f'{system} df must contain all of these columns: {str(required_cols)}')
 
-def round_nearest_hour(df: pd.DataFrame) -> pd.DataFrame:
+def round_nearest_hour_index(df: pd.DataFrame) -> pd.DataFrame:
     """
     Rounds timestamps to nearest hour then sets as the index. Indirect form of interpolation.
     ASSUMPTION: satellite passes are infrequent enough that duplicate timestamps won't be created
@@ -83,5 +83,6 @@ def round_nearest_hour(df: pd.DataFrame) -> pd.DataFrame:
     df_copy["time"] = pd.to_datetime(df_copy["time"], utc=True)
     df_copy["time"] = df_copy["time"].dt.round("h")
     df_copy = df_copy.set_index("time")
+    df_copy = df_copy.sort_index()
 
     return df_copy
