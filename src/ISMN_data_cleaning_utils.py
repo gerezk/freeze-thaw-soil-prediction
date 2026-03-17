@@ -100,6 +100,7 @@ def create_timestamp_col(df: pd.DataFrame) -> pd.DataFrame:
     df_copy = df_copy.drop(columns=['UTC_date', 'UTC_time'])
     df_copy.set_index('UTC_timestamp', inplace=True)
     df_copy.index = df_copy.index.tz_localize('UTC')
+    df_copy = df_copy.sort_index()
 
     return df_copy
 

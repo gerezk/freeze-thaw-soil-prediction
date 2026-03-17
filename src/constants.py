@@ -5,8 +5,9 @@ from pathlib import Path
 Application constants.
 Values here should not change during runtime.
 """
-# any data outside this range is dropped, exclusive
-DATE_RANGE = {datetime(2007, 1, 1), datetime(2025, 1, 1)}
+# any data outside this range is dropped
+# order doesn't matter, but the min value is included in the data and the max value is excluded.
+DATE_RANGE = [datetime(2007, 1, 1), datetime(2025, 1, 1)]
 
 # path variables
 SITE_SURVEY_PATH = Path('../ISMN_site_survey.csv')
