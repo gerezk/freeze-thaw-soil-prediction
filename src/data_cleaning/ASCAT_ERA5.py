@@ -1,6 +1,8 @@
 import pandas as pd
 from pathlib import Path
 
+from src.constants import DATETIMEINDEX_NAME
+
 # --------------------
 # Data Preprocessing
 # --------------------
@@ -80,9 +82,10 @@ def round_nearest_hour_index(df: pd.DataFrame) -> pd.DataFrame:
     """
     df_copy = df.copy()
 
-    df_copy["time"] = pd.to_datetime(df_copy["time"], utc=True)
-    df_copy["time"] = df_copy["time"].dt.round("h")
-    df_copy = df_copy.set_index("time")
+    df_copy[DATETIMEINDEX_NAME] = pd.to_datetime(df_copy["time"], utc=True)
+    df_copy[DATETIMEINDEX_NAME] = df_copy[DATETIMEINDEX_NAME].dt.round("h")
+    df_copy = df_copy.set_index(DATETIMEINDEX_NAME)
+    df_copy = df_copy.drop(columns=["time"])
     df_copy = df_copy.sort_index()
 
     return df_copy

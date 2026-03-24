@@ -5,7 +5,8 @@ import datetime
 from pathlib import Path
 import numbers
 
-from src.general_data_cleaning_utils import validate_time_index
+from src.data_cleaning.general import validate_time_index
+from src.constants import DATETIMEINDEX_NAME
 
 # --------------------
 # Data Preprocessing
@@ -95,10 +96,10 @@ def create_timestamp_col(df: pd.DataFrame) -> pd.DataFrame:
 
     df_copy = df.copy()
 
-    df_copy['UTC_timestamp'] = df_copy['UTC_date'].astype(str) + ' ' + df_copy['UTC_time'].astype(str)
-    df_copy['UTC_timestamp'] = pd.to_datetime(df_copy['UTC_timestamp'], format='%Y/%m/%d %H:%M')
+    df_copy[DATETIMEINDEX_NAME] = df_copy['UTC_date'].astype(str) + ' ' + df_copy['UTC_time'].astype(str)
+    df_copy[DATETIMEINDEX_NAME] = pd.to_datetime(df_copy[DATETIMEINDEX_NAME], format='%Y/%m/%d %H:%M')
     df_copy = df_copy.drop(columns=['UTC_date', 'UTC_time'])
-    df_copy.set_index('UTC_timestamp', inplace=True)
+    df_copy.set_index(DATETIMEINDEX_NAME, inplace=True)
     df_copy.index = df_copy.index.tz_localize('UTC')
     df_copy = df_copy.sort_index()
 
@@ -366,5 +367,5 @@ def map_stations(path: Path, save_image=False) -> None:
         showcountries=True
     )
     if save_image:
-        fig.write_image(Path("../images/map_ISMN_stations.png"))
+        fig.write_image(Path("../../images/map_ISMN_stations.png"))
     fig.show()
