@@ -24,4 +24,10 @@ NST_09_NAME = 'NST-09'
 SOD012_NAME = 'SOD012'
 SOD103_NAME = 'SOD103'
 
+# key columns to keep for each dataset
+# either a list of strings or None to keep all columns
+ASCAT_KEY_COLS = ['time', 'backscatter40', 'swath_indicator', 'as_des_pass', 'sat_id']
+ERA5_KEY_COLS =  ['time', 'stl1']
+ISMN_KEY_COLS =  ['soil_temp']
+
 DATETIMEINDEX_NAME = 'UTC_timestamp'

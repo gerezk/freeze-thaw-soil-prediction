@@ -1,13 +1,15 @@
-"""
-
-"""
-
 import pandas as pd
 from pathlib import Path
 
 import src.constants as c
 
 def main(station_name: str, cleaned_data_path: Path) -> pd.DataFrame:
+    """
+
+    :param station_name:
+    :param cleaned_data_path:
+    :return:
+    """
     # validate inputs
     if not isinstance(station_name, str):
         raise TypeError("Station name must be a string")
