@@ -2,6 +2,8 @@ import pandas as pd
 from pathlib import Path
 
 from src.constants import DATETIMEINDEX_NAME
+from src.data_cleaning.general import validate_time_index
+
 
 # --------------------
 # Data Preprocessing
@@ -87,5 +89,27 @@ def round_nearest_hour_index(df: pd.DataFrame) -> pd.DataFrame:
     df_copy = df_copy.set_index(DATETIMEINDEX_NAME)
     df_copy = df_copy.drop(columns=["time"])
     df_copy = df_copy.sort_index()
+
+    return df_copy
+
+def impute_hourly(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Transform df to have hourly imputed values.
+    :param df: from collect_data() and check_df_cols()
+    :return: df with hourly imputed values
+    """
+    validate_time_index(df)
+
+    df_copy = df.copy()
+    df_copy = df_copy.sort_index()
+
+    df_copy = (df_copy
+               .asfreq('h')
+               .interpolate(method='time')
+               .round(7)
+               )
+
+    if df_copy.isna().any().any():
+        raise ValueError('Hourly impute failed; some missing values are present.')
 
     return df_copy
