@@ -9,6 +9,9 @@ Values here should not change during runtime.
 # order doesn't matter, but the min value is included in the data and the max value is excluded.
 DATE_RANGE = [datetime(2007, 1, 1), datetime(2025, 1, 1)]
 
+# symmetric threshold across freezing point for determining class
+THRESHOLD = 1.0
+
 # path variables
 SITE_SURVEY_PATH = Path('../ISMN_site_survey.csv')
 
@@ -24,10 +27,10 @@ NST_09_NAME = 'NST-09'
 SOD012_NAME = 'SOD012'
 SOD103_NAME = 'SOD103'
 
-# key columns to keep for each dataset
+# key columns to keep for each dataset after DatetimeIndex set
 # either a list of strings or None to keep all columns
-ASCAT_KEY_COLS = ['time', 'backscatter40', 'swath_indicator', 'as_des_pass', 'sat_id']
-ERA5_KEY_COLS =  ['time', 'stl1']
+ASCAT_KEY_COLS = ['backscatter40', 'swath_indicator', 'as_des_pass', 'sat_id']
+ERA5_KEY_COLS =  ['stl1']
 ISMN_KEY_COLS =  ['soil_temp']
 
 DATETIMEINDEX_NAME = 'UTC_timestamp'

@@ -3,12 +3,13 @@ from pathlib import Path
 
 import src.constants as c
 
-def main(station_name: str, cleaned_data_path: Path) -> pd.DataFrame:
-    """
 
-    :param station_name:
-    :param cleaned_data_path:
-    :return:
+def main(station_name: str, cleaned_data_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Processing and labeling of cleaned data csv files.
+    :param station_name: name of the ISMN station
+    :param cleaned_data_path: path to the cleaned data directory
+    :return: dfs for ASCAT and ERA5 data
     """
     # validate inputs
     if not isinstance(station_name, str):
@@ -27,7 +28,8 @@ def main(station_name: str, cleaned_data_path: Path) -> pd.DataFrame:
                 df = pd.read_csv(file, index_col=c.DATETIMEINDEX_NAME)
                 dfs.append(df)
     if len(dfs) != 3:
-        raise FileNotFoundError(f'{cleaned_data_path} must have exactly 3 files (ISMN, ASCAT, ERA5) for given station, {station_name}.')
+        raise FileNotFoundError(
+            f'{cleaned_data_path} must have exactly 3 files (ISMN, ASCAT, ERA5) for given station, {station_name}.')
 
     # inner join all dfs along DatetimeIndex
     combined_df = pd.merge(dfs[0], dfs[1], left_index=True, right_index=True)
@@ -35,9 +37,15 @@ def main(station_name: str, cleaned_data_path: Path) -> pd.DataFrame:
     combined_df = combined_df.sort_index()
 
     # add label based on ISMN temp to each record
-    print(combined_df.head())
+    combined_df['class'] = (combined_df['soil_temp']
+                            .map(lambda x: 'thawed' if x>abs(c.THRESHOLD) else ('transition' if x>=-abs(c.THRESHOLD) else 'frozen')))
 
-    return combined_df
+    # split into two dfs
+    ascat_df = combined_df[c.ASCAT_KEY_COLS + ['class']]
+    era5_df = combined_df[c.ERA5_KEY_COLS + ['class']]
+
+    return ascat_df, era5_df
+
 
 if __name__ == "__main__":
     station = 'Aberdeen-35-WNW'
