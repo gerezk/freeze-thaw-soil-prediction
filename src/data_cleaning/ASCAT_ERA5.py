@@ -53,28 +53,6 @@ def collect_data(data_path: Path, ismn_site_survey_path: Path, station_name: str
 
     raise ValueError(f'No data was found for {station_name}, {system} in {data_path}')
 
-def check_df_cols(df: pd.DataFrame, system: str) -> None:
-    """
-    Check if df contains all required ASCAT or ERA5 columns
-    :param df: from collect_data()
-    :param system: ASCAT or ERA5, case-insensitive
-    :return:
-    """
-    # check input data type
-    if not isinstance(system, str):
-        raise TypeError("system must be a string")
-    # check input value
-    if system.upper() not in ["ASCAT", "ERA5"]:
-        raise ValueError("system must be ASCAT or ERA5 (case-insensitive)")
-
-    if system.upper() == "ASCAT":
-        required_cols = {'time', 'backscatter40', 'swath_indicator', 'as_des_pass', 'sat_id'}
-    else: # ERA5
-        required_cols = {'time', 'skt', 'stl1', 'stl2', 'swvl1', 'swvl2', 'sd'}
-
-    if not required_cols.issubset(df.columns):
-        raise KeyError(f'{system} df must contain all of these columns: {str(required_cols)}')
-
 def round_nearest_hour_index(df: pd.DataFrame) -> pd.DataFrame:
     """
     Rounds timestamps to nearest hour then sets as the index. Indirect form of interpolation.
@@ -113,3 +91,29 @@ def impute_hourly(df: pd.DataFrame) -> pd.DataFrame:
         raise ValueError('Hourly impute failed; some missing values are present.')
 
     return df_copy
+
+# --------------------
+# Input Checking
+# --------------------
+
+def check_df_cols(df: pd.DataFrame, system: str) -> None:
+    """
+    Check if df contains all required ASCAT or ERA5 columns
+    :param df: from collect_data()
+    :param system: ASCAT or ERA5, case-insensitive
+    :return:
+    """
+    # check input data type
+    if not isinstance(system, str):
+        raise TypeError("system must be a string")
+    # check input value
+    if system.upper() not in ["ASCAT", "ERA5"]:
+        raise ValueError("system must be ASCAT or ERA5 (case-insensitive)")
+
+    if system.upper() == "ASCAT":
+        required_cols = {'time', 'backscatter40', 'swath_indicator', 'as_des_pass', 'sat_id'}
+    else: # ERA5
+        required_cols = {'time', 'skt', 'stl1', 'stl2', 'swvl1', 'swvl2', 'sd'}
+
+    if not required_cols.issubset(df.columns):
+        raise KeyError(f'{system} df must contain all of these columns: {str(required_cols)}')

@@ -43,7 +43,7 @@ def filter_df(df: pd.DataFrame, date_range: list[datetime]) -> pd.DataFrame:
 # --------------------
 
 def plot(df: pd.DataFrame, variable: str, station: str, system: str, form: str,
-         y_label=None, start=None, end=None) -> None:
+         y_label=None, start=None, end=None) -> plt.Axes:
     """
     Create a line or scatter plot of variable vs the index.
     Scatter should be chosen if there's any datapoints that are surrounded by NaN.
@@ -57,7 +57,7 @@ def plot(df: pd.DataFrame, variable: str, station: str, system: str, form: str,
     :param y_label: y-label for plot
     :param start: naive datetime.datetime object (inclusive)
     :param end: naive datetime.datetime object (inclusive)
-    :return: None
+    :return: matplotlib Axes object
     """
     # check input data types
     if not isinstance(df, pd.DataFrame):
@@ -115,32 +115,34 @@ def plot(df: pd.DataFrame, variable: str, station: str, system: str, form: str,
         df_slice = df.loc[start:end]
     else: # default to plotting all records
         df_slice = df
-
     df_slice = df_slice.sort_index()
+
+    # create plot objects
+    fig, ax = plt.subplots()
     if form.lower() == 'line':
-        plt.plot(df_slice.index, df_slice[variable])
+        ax.plot(df_slice.index, df_slice[variable])
     elif form.lower() == 'scatter':
-        plt.scatter(df_slice.index, df_slice[variable])
+        ax.scatter(df_slice.index, df_slice[variable])
     else:
         raise ValueError(f'form somehow changed to invalid value from when it was checked to now')
-    plt.title(f'{station}, {system}')
+    ax.set_title(f'{station}, {system}')
     if y_label is not None:
-        plt.ylabel(y_label)
+        ax.set_ylabel(y_label)
     else:
-        plt.ylabel(variable)
-    plt.xlabel('Date')
-    plt.xticks(rotation=30)
+        ax.set_ylabel(variable)
+    ax.set_xlabel('Date')
+    ax.tick_params(axis='x', rotation=30)
 
     if variable == 'soil_temp':
-        plt.axhline(y=0, color='k')
+        ax.axhline(y=0, color='k')
 
-    plt.show()
+    return ax
 
 # --------------------
 # Input Checking
 # --------------------
 
-def validate_time_index(df: pd.DataFrame):
+def validate_time_index(df: pd.DataFrame) -> None:
     """
     Validate time index of df.
     :param df: from preprocessing

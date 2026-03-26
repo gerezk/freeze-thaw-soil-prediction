@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import plotly.express as px
+from plotly.graph_objects import Figure
 import datetime
 from pathlib import Path
 import numbers
@@ -328,12 +329,12 @@ def make_nan_indices(df: pd.DataFrame, long_variable: str, timestamps: pd.Dateti
 # Visualization
 # --------------------
 
-def map_stations(path: Path, save_image=False) -> None:
+def map_stations(path: Path, save_image=False) -> Figure:
     """
-    Show map displaying locations of ISMN stations.
+    Create map displaying locations of ISMN stations.
     :param path: path to ISMN_site_survey.csv
-    :param save_image: whether to save plot; takes a few seconds if True
-    :return: saved plot in ../images if save_image is True
+    :param save_image: whether to save plot in ../images; takes a few seconds if True
+    :return: plotly.graph_objects.Figure
     """
     # check input data type
     if not isinstance(path, Path):
@@ -368,4 +369,5 @@ def map_stations(path: Path, save_image=False) -> None:
     )
     if save_image:
         fig.write_image(Path("../../images/map_ISMN_stations.png"))
-    fig.show()
+
+    return fig
