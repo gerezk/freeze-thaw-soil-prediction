@@ -25,7 +25,10 @@ def main(station_name: str, cleaned_data_path: Path) -> tuple[pd.DataFrame, pd.D
         if file.is_file():
             file_split = file.stem.split('_')
             if file_split[0] == station_name:
-                df = pd.read_csv(file, index_col=c.DATETIMEINDEX_NAME)
+                df = pd.read_csv(file,
+                                 index_col=c.DATETIMEINDEX_NAME,
+                                 parse_dates=[c.DATETIMEINDEX_NAME],
+                                 )
                 dfs.append(df)
     if len(dfs) != 3:
         raise FileNotFoundError(
@@ -38,14 +41,19 @@ def main(station_name: str, cleaned_data_path: Path) -> tuple[pd.DataFrame, pd.D
 
     # add label based on ISMN temp to each record
     combined_df['class'] = (combined_df['soil_temp']
-                            .map(lambda x: 'thawed' if x>abs(c.THRESHOLD) else ('transition' if x>=-abs(c.THRESHOLD) else 'frozen')))
+                            .map(lambda x: 'thawed' if x>abs(c.THRESHOLD) else ('transition' if x>=-abs(c.THRESHOLD) else 'frozen'))
+                            )
 
     # split into two dfs
-    ascat_df = combined_df[c.ASCAT_KEY_COLS + ['class']]
-    era5_df = combined_df[c.ERA5_KEY_COLS + ['class']]
+    ascat_df = combined_df[c.ASCAT_KEY_COLS + ['soil_temp', 'class']]
+    era5_df = combined_df[c.ERA5_KEY_COL + ['soil_temp', 'class']]
+
+    # add pred for ERA5
+    era5_df['pred'] = (era5_df['stl1']
+                       .map(lambda x: 'thawed' if x>abs(c.THRESHOLD) else ('transition' if x>=-abs(c.THRESHOLD) else 'frozen'))
+                       )
 
     return ascat_df, era5_df
-
 
 if __name__ == "__main__":
     station = 'Aberdeen-35-WNW'
