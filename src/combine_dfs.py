@@ -40,17 +40,17 @@ def main(station_name: str, cleaned_data_path: Path) -> tuple[pd.DataFrame, pd.D
     combined_df = combined_df.sort_index()
 
     # add label based on ISMN temp to each record
-    combined_df['class'] = (combined_df['soil_temp']
-                            .map(lambda x: 'thawed' if x>abs(c.THRESHOLD) else ('transition' if x>=-abs(c.THRESHOLD) else 'frozen'))
+    combined_df['class'] = (combined_df[c.ISMN_LONG_VAR_NAME]
+                            .map(lambda x: c.CLASSES[0] if x>abs(c.CLASS_BOUNDARY) else (c.CLASSES[1] if x >= -abs(c.CLASS_BOUNDARY) else c.CLASSES[2]))
                             )
 
     # split into two dfs
-    ascat_df = combined_df[c.ASCAT_KEY_COLS + ['soil_temp', 'class']]
-    era5_df = combined_df[c.ERA5_KEY_COL + ['soil_temp', 'class']]
+    ascat_df = combined_df[c.ASCAT_KEY_COLS + [c.ISMN_LONG_VAR_NAME, 'class']]
+    era5_df = combined_df[c.ERA5_KEY_COL + [c.ISMN_LONG_VAR_NAME, 'class']]
 
     # add pred for ERA5
     era5_df['pred'] = (era5_df['stl1']
-                       .map(lambda x: 'thawed' if x>abs(c.THRESHOLD) else ('transition' if x>=-abs(c.THRESHOLD) else 'frozen'))
+                       .map(lambda x: c.CLASSES[0] if x>abs(c.CLASS_BOUNDARY) else (c.CLASSES[1] if x >= -abs(c.CLASS_BOUNDARY) else c.CLASSES[2]))
                        )
 
     return ascat_df, era5_df

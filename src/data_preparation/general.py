@@ -1,8 +1,10 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from datetime import datetime, timedelta
-from typing import cast
+from datetime import datetime
+from typing import cast, List
 from pathlib import Path
+from numbers import Real
+import math
 
 # --------------------
 # Preprocessing
@@ -36,6 +38,41 @@ def filter_df(df: pd.DataFrame, date_range: list[datetime]) -> pd.DataFrame:
         df_copy = df_copy[df_copy.index >= date_range[0]]
         df_copy = df_copy[df_copy.index < date_range[1]]
 
+    return df_copy
+
+def add_class_col(df: pd.DataFrame, variable: str, col_name: str, boundary: Real, classes: List[str]) -> pd.DataFrame:
+    """
+    Adds class column to dataframe based on a boundary mirrored cross the freezing point in C.
+    Classes must be a list of strings of length three, with elements in descending order by temperature.
+    :param df: from collect_data()
+    :param variable: variable name
+    :param col_name: class column name
+    :param boundary: real number that must not be zero
+    :param classes: list of exactly length three, with elements in descending order by temperature
+    :return: dataframe with added class column
+    """
+    # check data types
+    if not pd.api.types.is_numeric_dtype(df[variable]):
+        raise TypeError(f'{variable} column in df must be a numeric type')
+    if not isinstance(col_name, str):
+        raise TypeError(f'{col_name} must be a string')
+    if not isinstance(boundary, Real):
+        raise TypeError('boundary must be a number')
+    if not isinstance(classes, list):
+        raise TypeError('classes must be a list')
+    if not all(isinstance(x, str) for x in classes):
+        raise TypeError('All elements in classes must be strings')
+    # check data values
+    if math.isclose(boundary, 0):
+        raise ValueError('boundary must not be zero')
+    if len(classes) != 3:
+        raise ValueError('classes must have exactly 3 elements')
+
+    df_copy = df.copy()
+
+    df_copy[col_name] = (df_copy[variable]
+                        .map(lambda x: classes[0] if x>abs(boundary) else (classes[1] if x >= -abs(boundary) else classes[2]))
+                        )
     return df_copy
 
 # --------------------

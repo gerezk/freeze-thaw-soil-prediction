@@ -2,7 +2,7 @@ import pandas as pd
 from pathlib import Path
 
 from src.constants import DATETIMEINDEX_NAME
-from src.data_cleaning.general import validate_time_index
+from src.data_preparation.general import validate_time_index
 
 
 # --------------------

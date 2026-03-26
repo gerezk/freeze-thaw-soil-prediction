@@ -4,16 +4,16 @@ import plotly.express as px
 from plotly.graph_objects import Figure
 import datetime
 from pathlib import Path
-import numbers
+from numbers import Real
 
-from src.data_cleaning.general import validate_time_index
+from src.data_preparation.general import validate_time_index
 from src.constants import DATETIMEINDEX_NAME
 
 # --------------------
 # Data Preprocessing
 # --------------------
 
-def collect_data(path: Path, max_depth: numbers.Real, short_variable: str, long_variable: str) -> pd.DataFrame:
+def collect_data(path: Path, max_depth: Real, short_variable: str, long_variable: str) -> pd.DataFrame:
     """
     Collect long_variable data for a station into a list, excluding data beyond max_depth, then merge into a single df
     The closest depth to max_depth will be selected,
@@ -29,7 +29,7 @@ def collect_data(path: Path, max_depth: numbers.Real, short_variable: str, long_
     # check input data types
     if not isinstance(path, Path):
         raise TypeError("path must be a pathlib.Path")
-    if not isinstance(max_depth, numbers.Real):
+    if not isinstance(max_depth, Real):
         raise TypeError("max_depth must be a real number")
     if not isinstance(short_variable, str):
         raise TypeError("short_variable must be a string")
@@ -129,7 +129,7 @@ def convert_nan(df: pd.DataFrame, long_variable: str) -> pd.DataFrame:
 
     return df_copy
 
-def find_outlier_spikes(df: pd.DataFrame, long_variable: str, threshold: numbers.Real) -> pd.DatetimeIndex:
+def find_outlier_spikes(df: pd.DataFrame, long_variable: str, threshold: Real) -> pd.DatetimeIndex:
     """
     Detect single datapoint outliers for column long_variable in df based on threshold.
     A single datapoint is flagged as an outlier if the absolute differences between it and BOTH immediate non-NaN
@@ -140,7 +140,7 @@ def find_outlier_spikes(df: pd.DataFrame, long_variable: str, threshold: numbers
     :return: pd.DatetimeIndex with timezone containing timestamps of outliers
     """
     # check input data types
-    if not isinstance(threshold, numbers.Real):
+    if not isinstance(threshold, Real):
         raise TypeError("threshold must be a real number")
     # check input values
     if long_variable not in df.columns:

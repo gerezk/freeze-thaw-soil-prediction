@@ -10,7 +10,7 @@ Values here should not change during runtime.
 DATE_RANGE = [datetime(2007, 1, 1), datetime(2025, 1, 1)]
 
 # symmetric threshold across freezing point for determining class
-THRESHOLD = 1.0
+CLASS_BOUNDARY = 1.0
 
 # path variables
 SITE_SURVEY_PATH = Path('../ISMN_site_survey.csv')
@@ -34,4 +34,10 @@ ASCAT_KEY_COLS = ['backscatter40', 'swath_indicator', 'as_des_pass', 'sat_id']
 ERA5_KEY_COL = ['stl1']
 ISMN_KEY_COL = ['soil_temp']
 
+# class labels - program can only handle 3-class classification for now
+# labels must be ordered from high to low in temperature
+CLASSES = ['thawed', 'transition', 'frozen']
+
 DATETIMEINDEX_NAME = 'UTC_timestamp'
+
+ISMN_LONG_VAR_NAME = 'soil_temp'
