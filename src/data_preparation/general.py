@@ -5,6 +5,7 @@ from typing import cast, List
 from pathlib import Path
 from numbers import Real
 import math
+import logging
 
 # --------------------
 # Preprocessing
@@ -67,12 +68,20 @@ def add_class_col(df: pd.DataFrame, variable: str, col_name: str, boundary: Real
         raise ValueError('boundary must not be zero')
     if len(classes) != 3:
         raise ValueError('classes must have exactly 3 elements')
+    
+    def classify_value(x):
+        """Return class label of x based on boundary and classes."""
+        if x > abs(boundary):
+            return classes[0]
+        elif x >= -abs(boundary):
+            return classes[1]
+        else:
+            return classes[2]
 
     df_copy = df.copy()
 
-    df_copy[col_name] = (df_copy[variable]
-                        .map(lambda x: classes[0] if x>abs(boundary) else (classes[1] if x >= -abs(boundary) else classes[2]))
-                        )
+    df_copy[col_name] = df_copy[variable].map(classify_value)
+
     return df_copy
 
 # --------------------

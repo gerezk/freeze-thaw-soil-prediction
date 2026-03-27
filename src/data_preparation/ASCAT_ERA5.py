@@ -30,14 +30,14 @@ def collect_data(data_path: Path, ismn_site_survey_path: Path, station_name: str
     if not data_path.is_dir():
         raise NotADirectoryError(f'{data_path} must point to a directory')
     if not ismn_site_survey_path.is_file():
-        raise FileNotFoundError(f'File not found at{ismn_site_survey_path}')
+        raise FileNotFoundError(f'File not found at {ismn_site_survey_path}')
     if system.upper() not in ["ASCAT", "ERA5"]:
         raise ValueError("system must be ASCAT or ERA5 (case-insensitive)")
 
     # get unique key for raw data file (lon, lat)
     ismn_sites = pd.read_csv(ismn_site_survey_path)
     site_info = ismn_sites[ismn_sites.ISMN_Station_Name == station_name]
-    lon, lat = format(site_info.LON.item(),'.3f'), format(site_info.LAT.item(),'.3f')
+    lon, lat = f'{site_info.LON.item():.3f}', f'{site_info.LAT.item():.3f}'
 
     for file in data_path.iterdir():
         filename = file.name
