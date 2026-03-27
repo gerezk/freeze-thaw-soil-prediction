@@ -62,7 +62,7 @@ freeze/thaw transitions, providing a reproducible and observation-driven alterna
 
 ## ℹ️ Sources
 
-The ASCAT and ERA5 data were downloaded from https://cloud.geo.tuwien.ac.at/s/JZnp7H8CAtJtbT5.
+The raw ASCAT and ERA5 data files can be found at https://doi.org/10.5281/zenodo.19259521.
 
 The individual swath orbit files from the **ASCAT** Surface Soil Moisture
 (SSM) Climate Data Record (CDR) v8 at 12.5 km sampling (H121,
