@@ -53,8 +53,10 @@ class Constants(BaseModel):
             raise ValueError("CLASS_BOUNDARY must be positive.")
         if not self.SITE_SURVEY_PATH.is_file():
             raise FileNotFoundError(f'File not found at {self.SITE_SURVEY_PATH}')
-        if not self.CLEANED_DATA_PATH.is_dir():
-            raise NotADirectoryError(f'{self.CLEANED_DATA_PATH} must point to a directory.')
+        if self.CLEANED_DATA_PATH.is_file():
+            raise FileExistsError(f'{self.CLEANED_DATA_PATH} must point to a directory.')
+        if not self.CLEANED_DATA_PATH.exists():
+            self.CLEANED_DATA_PATH.mkdir(parents=True, exist_ok=True)
         return self
 
 
