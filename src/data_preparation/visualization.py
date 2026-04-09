@@ -143,6 +143,8 @@ def map_stations(path: Path, save_image=False) -> Figure:
         showcountries=True
     )
     if save_image:
-        fig.write_image(Path("../images/map_ISMN_stations.png"))
+        images_dir = Path("../images")
+        images_dir.mkdir(parents=True, exist_ok=True)
+        fig.write_image(images_dir / "map_ISMN_stations.png")
 
     return fig

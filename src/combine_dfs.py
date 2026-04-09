@@ -1,7 +1,7 @@
 import pandas as pd
 from pathlib import Path
 
-import src.constants as c
+from src.constants import constants as c
 
 
 def main(station_name: str, cleaned_data_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:

@@ -4,7 +4,7 @@ from pathlib import Path
 from numbers import Real
 
 from src.data_preparation.general import validate_time_index
-from src.constants import DATETIMEINDEX_NAME
+from src.constants import constants as c
 
 # --------------------
 # Data Preprocessing
@@ -94,10 +94,10 @@ def create_timestamp_col(df: pd.DataFrame) -> pd.DataFrame:
 
     df_copy = df.copy()
 
-    df_copy[DATETIMEINDEX_NAME] = df_copy['UTC_date'].astype(str) + ' ' + df_copy['UTC_time'].astype(str)
-    df_copy[DATETIMEINDEX_NAME] = pd.to_datetime(df_copy[DATETIMEINDEX_NAME], format='%Y/%m/%d %H:%M')
+    df_copy[c.DATETIMEINDEX_NAME] = df_copy['UTC_date'].astype(str) + ' ' + df_copy['UTC_time'].astype(str)
+    df_copy[c.DATETIMEINDEX_NAME] = pd.to_datetime(df_copy[c.DATETIMEINDEX_NAME], format='%Y/%m/%d %H:%M')
     df_copy = df_copy.drop(columns=['UTC_date', 'UTC_time'])
-    df_copy.set_index(DATETIMEINDEX_NAME, inplace=True)
+    df_copy.set_index(c.DATETIMEINDEX_NAME, inplace=True)
     df_copy.index = df_copy.index.tz_localize('UTC')
     df_copy = df_copy.sort_index()
 

@@ -1,41 +1,34 @@
 import pandas as pd
 from datetime import datetime
 from typing import cast, List
-from pathlib import Path
 from numbers import Real
 import math
+import logging
+logger = logging.getLogger(__name__)
 
 # --------------------
 # Preprocessing
 # --------------------
 
-def filter_df(df: pd.DataFrame, date_range: list[datetime]) -> pd.DataFrame:
+def filter_df(df: pd.DataFrame, start: datetime, end: datetime) -> pd.DataFrame:
     """
-    Filters dataframe based on date range (inclusive, exclusive)
+    Filters dataframe based on date range.
     :param df: has aware DatetimeIndex
-    :param date_range: list of datetimes of length 2
+    :param start: start date (inclusive)
+    :param end: end date (exclusive)
     :return: filtered dataframe
     """
     df_copy = df.copy()
 
-    if date_range is not None:
-        date_range = date_range.copy()
-        date_range.sort()
-        date_range[0] = date_range[0].replace(tzinfo=df_copy.index.tz)
-        date_range[1] = date_range[1].replace(tzinfo=df_copy.index.tz)
+    start = start.replace(tzinfo=df_copy.index.tz)
+    end = end.replace(tzinfo=df_copy.index.tz)
 
-        # check validity of date_range
-        if date_range[0] > max(df.index):
-            raise ValueError('The start date must be prior to the last timestamp in df.')
-        if date_range[1] <= min(df.index):
-            raise ValueError('The end date must be after to the first timestamp in df.')
-
-        if date_range[0] < min(df_copy.index):
-            print(f'Warning: {date_range[0]} is before the earliest timestamp in df: {min(df_copy.index)}.')
-        if date_range[1] > max(df_copy.index):
-            print(f'Warning: {date_range[1]} is after the latest timestamp in df: {max(df_copy.index)}.')
-        df_copy = df_copy[df_copy.index >= date_range[0]]
-        df_copy = df_copy[df_copy.index < date_range[1]]
+    if start < min(df_copy.index):
+        logging.info(f'Warning: {start} is before the earliest timestamp in df: {min(df_copy.index)}.')
+    if end > max(df_copy.index):
+        logging.info(f'Warning: {end} is after the latest timestamp in df: {max(df_copy.index)}.')
+    df_copy = df_copy[df_copy.index >= start]
+    df_copy = df_copy[df_copy.index < end]
 
     return df_copy
 
@@ -97,21 +90,3 @@ def validate_time_index(df: pd.DataFrame) -> None:
     dt_index = cast(pd.DatetimeIndex, df.index)
     if dt_index.tz is None:
         raise ValueError("df index must be timezone-aware")
-
-def validate_data_cleaning_input(data_path: Path, date_range: list[datetime]) -> None:
-    """
-    Validate inputs for data cleaning functions in notebooks.
-    :param data_path:
-    :param date_range:
-    :return: None
-    """
-    if date_range is not None:
-        if not isinstance(date_range, list):
-            raise TypeError('date_range must be a list')
-        if len(date_range) != 2:
-            raise ValueError('date_range must be a list of length 2')
-        if not isinstance(date_range[0], datetime) or not isinstance(date_range[1], datetime):
-            raise TypeError('date_range must be a list of datetime objects')
-    # check input values
-    if not data_path.is_dir():
-        raise NotADirectoryError(f'{data_path} must be a directory')

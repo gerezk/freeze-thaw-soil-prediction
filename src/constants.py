@@ -1,43 +1,78 @@
 from datetime import datetime
 from pathlib import Path
+from pydantic import BaseModel, Field, model_validator
+from enum import Enum
 
 """
-Application constants.
-Values here should not change during runtime.
+Application constants that should not change during runtime.
+Changes to the classes, other than the default values will most likely break the program.
 """
-# any data outside this range is dropped
-# order doesn't matter, but the min value is included in the data and the max value is excluded.
-DATE_RANGE = [datetime(2007, 1, 1), datetime(2025, 1, 1)]
 
-# symmetric threshold across freezing point for determining class
-CLASS_BOUNDARY = 1.0
+class DateRange(BaseModel):
+    start: datetime
+    end: datetime
 
-# path variables
-SITE_SURVEY_PATH = Path('../ISMN_site_survey.csv')
-CLEANED_DATA_PATH = Path('../data/cleaned')
 
-# station names
-ABERDEEN_NAME = 'Aberdeen-35-WNW'
-JAMESTOWN_NAME = 'Jamestown-38-WSW'
-GOBBLERS_KNOB_NAME = 'GobblersKnob'
-NENANA_NAME = 'Nenana'
-L23_NAME = 'L23'
-L38_NAME = 'L38'
-NST_07_NAME = 'NST-07'
-NST_09_NAME = 'NST-09'
-SOD012_NAME = 'SOD012'
-SOD103_NAME = 'SOD103'
+class Constants(BaseModel):
+    model_config = {"frozen": True}
 
-# key columns to keep for each dataset after DatetimeIndex set
-# either a list of strings, or None to keep all columns
-ASCAT_KEY_COLS = ['backscatter40', 'swath_indicator', 'as_des_pass', 'sat_id']
-ERA5_KEY_COL = ['stl1']
-ISMN_KEY_COL = ['soil_temp']
+    DATE_RANGE: DateRange = DateRange(
+        start=datetime(2007, 1, 1),
+        end=datetime(2025, 1, 1)
+    )
 
-# class labels - program can only handle 3-class classification for now
-# labels must be ordered from high to low in temperature
-CLASSES = ['thawed', 'transition', 'frozen']
+    # symmetric boundary across the freezing point in celsius
+    CLASS_BOUNDARY: float = 1.0
 
-DATETIMEINDEX_NAME = 'UTC_timestamp'
+    BASE_DIR: Path = Path(__file__).resolve().parent
+    SITE_SURVEY_PATH: Path = BASE_DIR / "../ISMN_site_survey.csv"
+    CLEANED_DATA_PATH: Path = BASE_DIR / "../data/cleaned"
 
-ISMN_LONG_VAR_NAME = 'soil_temp'
+    ASCAT_KEY_COLS: list[str] = Field(default_factory=lambda: [
+        'backscatter40', 'swath_indicator', 'as_des_pass', 'sat_id'
+    ])
+
+    ERA5_KEY_COLS: list[str] = Field(default_factory=lambda: ['stl1'])
+    ISMN_KEY_COLS: list[str] = Field(default_factory=lambda: ['soil_temp'])
+
+    # must be ordered in descending temperature
+    CLASSES: list[str] = Field(
+        default_factory=lambda: ['thawed', 'transition', 'frozen'],
+        min_length=3,
+        max_length=3
+    )
+
+    DATETIMEINDEX_NAME: str = 'UTC_timestamp'
+    ISMN_LONG_VAR_NAME: str = 'soil_temp'
+
+    @model_validator(mode="after")
+    def validate(self):
+        if self.DATE_RANGE.start >= self.DATE_RANGE.end:
+            raise ValueError("DATE_RANGE.start must be before DATE_RANGE.end.")
+        if self.CLASS_BOUNDARY <= 0:
+            raise ValueError("CLASS_BOUNDARY must be positive.")
+        if not self.SITE_SURVEY_PATH.is_file():
+            raise FileNotFoundError(f'File not found at {self.SITE_SURVEY_PATH}')
+        if not self.CLEANED_DATA_PATH.is_dir():
+            raise NotADirectoryError(f'{self.CLEANED_DATA_PATH} must point to a directory.')
+        return self
+
+
+class StationName(str, Enum):
+    """Editable values for ISMN stations. Stations can be added or removed."""
+    ABERDEEN = 'Aberdeen-35-WNW'
+    JAMESTOWN = 'Jamestown-38-WSW'
+    GOBBLERS_KNOB = 'GobblersKnob'
+    NENANA = 'Nenana'
+    L23 = 'L23'
+    L38 = 'L38'
+    NST_07 = 'NST-07'
+    NST_09 = 'NST-09'
+    SOD012 = 'SOD012'
+    SOD103 = 'SOD103'
+
+    def __str__(self):
+        return self.value
+
+# assign values here if needed
+constants = Constants()
