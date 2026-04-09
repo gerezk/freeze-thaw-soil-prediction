@@ -4,13 +4,15 @@ from datetime import datetime
 from pathlib import Path
 import plotly.express as px
 from plotly.graph_objects import Figure
+from pydantic import validate_call, ConfigDict
 
 from src.data_preparation.general import validate_time_index
 from src.constants import constants as c
 
 
+@validate_call(config=ConfigDict(arbitrary_types_allowed=True))
 def plot(df: pd.DataFrame, variable: str, station: str, system: str, form: str,
-         y_label=None, start=None, end=None) -> plt.Axes:
+         y_label: str | None=None, start: datetime | None=None, end: datetime | None=None) -> plt.Axes:
     """
     Create a line or scatter plot of variable vs the index.
     Scatter should be chosen if there's any datapoints that are surrounded by NaN.
@@ -26,11 +28,6 @@ def plot(df: pd.DataFrame, variable: str, station: str, system: str, form: str,
     :param end: naive datetime.datetime object (inclusive)
     :return: matplotlib Axes object
     """
-    # check input data types
-    if not isinstance(df, pd.DataFrame):
-        raise TypeError("df must be a pandas DataFrame")
-    if not isinstance(form, str):
-        raise TypeError("form must be a string")
     # check input values
     if df.empty:
         raise ValueError('df must not be empty')
@@ -43,16 +40,12 @@ def plot(df: pd.DataFrame, variable: str, station: str, system: str, form: str,
 
     # check start and end independently
     if start is not None:
-        if not isinstance(start, datetime):
-            raise TypeError(f'start must be a naive datetime.datetime object.')
         start = start.replace(tzinfo=df.index.tz)
         if start < min(df.index):
             raise ValueError(f'{start} must not be before the first timestamp in df: {min(df.index)}.')
         if start >= max(df.index):
             raise ValueError(f'{start} must not be on or after the last timestamp in df: {max(df.index)}.')
     if end is not None:
-        if not isinstance(end, datetime):
-            raise TypeError(f'end must be a naive datetime.datetime object.')
         end = end.replace(tzinfo=df.index.tz)
         if end > max(df.index):
             raise ValueError(f'{end} must not be after the last timestamp in df: {max(df.index)}.')
@@ -68,7 +61,7 @@ def plot(df: pd.DataFrame, variable: str, station: str, system: str, form: str,
         # check relation between start and end
         if start == end:
             raise ValueError(f'start and end cannot be the same.')
-        if start > end:
+        if start >= end:
             raise ValueError(f'start must be before end.')
         df_slice = df.loc[start:end]
     else: # default to plotting all records
@@ -96,16 +89,17 @@ def plot(df: pd.DataFrame, variable: str, station: str, system: str, form: str,
 
     return ax
 
-def map_stations(path: Path, save_image=False) -> Figure:
+@validate_call
+def map_stations(path: Path, save_image: bool = False) -> Figure:
     """
     Create map displaying locations of ISMN stations.
     :param path: path to ISMN_site_survey.csv
     :param save_image: whether to save plot in ../images; takes a few seconds if True
     :return: plotly.graph_objects.Figure
     """
-    # check input data type
-    if not isinstance(save_image, bool):
-        raise TypeError('save_image must be a bool')
+    # check input values
+    if not path.is_file():
+        raise FileNotFoundError(f'File not found at {path}')
 
     df = pd.read_csv(path)
 

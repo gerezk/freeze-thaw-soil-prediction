@@ -1,9 +1,11 @@
 import pandas as pd
 from numbers import Real
+from pydantic import validate_call, ConfigDict
 
 from src.data_preparation.general import validate_time_index
 
 
+@validate_call(config=ConfigDict(arbitrary_types_allowed=True))
 def find_outlier_spikes(df: pd.DataFrame, long_variable: str, threshold: Real) -> pd.DatetimeIndex:
     """
     Detect single datapoint outliers for column long_variable in df based on threshold.
@@ -17,7 +19,6 @@ def find_outlier_spikes(df: pd.DataFrame, long_variable: str, threshold: Real) -
     # check input values
     if long_variable not in df.columns:
         raise KeyError(f'Missing required column "{long_variable}".')
-    # check input df index
     validate_time_index(df)
 
     df_copy = df.copy()

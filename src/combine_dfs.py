@@ -2,6 +2,7 @@ import pandas as pd
 from pathlib import Path
 
 from src.constants import constants as c
+from src.internal_functions import classify_value
 
 
 def main(station_name: str, cleaned_data_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -11,14 +12,6 @@ def main(station_name: str, cleaned_data_path: Path) -> tuple[pd.DataFrame, pd.D
     :param cleaned_data_path: path to the cleaned data directory
     :return: dfs for ASCAT and ERA5 data
     """
-    # validate inputs
-    if not isinstance(station_name, str):
-        raise TypeError("Station name must be a string")
-    if not isinstance(cleaned_data_path, Path):
-        raise TypeError("Cleaned data path must be a Path object")
-    if not cleaned_data_path.is_dir():
-        raise NotADirectoryError(f'{cleaned_data_path} must be a directory')
-
     # find relevant csv files then import as df and append to list
     dfs = []
     for file in cleaned_data_path.iterdir():
@@ -46,12 +39,10 @@ def main(station_name: str, cleaned_data_path: Path) -> tuple[pd.DataFrame, pd.D
 
     # split into two dfs
     ascat_df = combined_df[c.ASCAT_KEY_COLS + [c.ISMN_LONG_VAR_NAME, 'class']]
-    era5_df = combined_df[c.ERA5_KEY_COL + [c.ISMN_LONG_VAR_NAME, 'class']]
+    era5_df = combined_df[c.ERA5_KEY_COLS + [c.ISMN_LONG_VAR_NAME, 'class']]
 
     # add pred for ERA5
-    era5_df['pred'] = (era5_df['stl1']
-                       .map(lambda x: c.CLASSES[0] if x>abs(c.CLASS_BOUNDARY) else (c.CLASSES[1] if x >= -abs(c.CLASS_BOUNDARY) else c.CLASSES[2]))
-                       )
+    era5_df['pred'] = era5_df['stl1'].map(classify_value)
 
     return ascat_df, era5_df
 

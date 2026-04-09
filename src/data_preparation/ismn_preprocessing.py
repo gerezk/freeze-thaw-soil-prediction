@@ -2,11 +2,13 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from numbers import Real
+from pydantic import validate_call, ConfigDict
 
 from src.data_preparation.general import validate_time_index
 from src.constants import constants as c
 
 
+@validate_call(config=ConfigDict(arbitrary_types_allowed=True))
 def collect_data(path: Path, max_depth: Real, short_variable: str, long_variable: str) -> pd.DataFrame:
     """
     Collect long_variable data for a station into a list, excluding data beyond max_depth, then merge into a single df
@@ -20,6 +22,12 @@ def collect_data(path: Path, max_depth: Real, short_variable: str, long_variable
     :param long_variable: full variable name
     :return: df
     """
+    # check input values
+    if not path.is_dir():
+        raise NotADirectoryError(f'{path} must point to a directory')
+    if max_depth < 0:
+        raise ValueError('depth must be non-negative')
+
     # find depth closest to max_depth
     depths = []
     for file in path.iterdir():
@@ -61,6 +69,7 @@ def collect_data(path: Path, max_depth: Real, short_variable: str, long_variable
 
     return combined_df
 
+@validate_call(config=ConfigDict(arbitrary_types_allowed=True))
 def create_timestamp_col(df: pd.DataFrame) -> pd.DataFrame:
     """
     Create a UTC timestamp column.
@@ -85,6 +94,7 @@ def create_timestamp_col(df: pd.DataFrame) -> pd.DataFrame:
 
     return df_copy
 
+@validate_call(config=ConfigDict(arbitrary_types_allowed=True))
 def convert_nan(df: pd.DataFrame, long_variable: str) -> pd.DataFrame:
     """
     Create proper nan values in the df.
@@ -95,11 +105,10 @@ def convert_nan(df: pd.DataFrame, long_variable: str) -> pd.DataFrame:
     :return: df with proper nan values
     """
     # check input values
-    if not {'ISMN_data_quality', long_variable}.issubset(df.columns):
-        raise KeyError(f'df must contain ISMN_data_quality and {long_variable} columns')
     if df.empty:
         raise ValueError('df must not be empty')
-    # check input df index
+    if not {'ISMN_data_quality', long_variable}.issubset(df.columns):
+        raise KeyError(f'df must contain ISMN_data_quality and {long_variable} columns')
     validate_time_index(df)
 
     df_copy = df.copy()

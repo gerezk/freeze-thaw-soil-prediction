@@ -1,14 +1,12 @@
 import pandas as pd
 from pathlib import Path
+from pydantic import validate_call, ConfigDict
 
 from src.constants import constants as c
-from src.data_preparation.general import validate_time_index
+from src.data_preparation.validation import validate_time_index
 
 
-# --------------------
-# Data Preprocessing
-# --------------------
-
+@validate_call
 def collect_data(data_path: Path, ismn_site_survey_path: Path, station_name: str, system: str) -> pd.DataFrame:
     """
     Collect a single ASCAT or ERA5 csv file. Can handle ASCAT and ERA5 data being mixed in the same directory.
@@ -19,6 +17,14 @@ def collect_data(data_path: Path, ismn_site_survey_path: Path, station_name: str
     :param system: ASCAT or ERA5, case-insensitive
     :return: pandas DataFrame
     """
+    # check input values
+    if not data_path.is_dir():
+        raise NotADirectoryError(f'{data_path} must point to a directory')
+    if not ismn_site_survey_path.is_file():
+        raise FileNotFoundError(f'File not found at {ismn_site_survey_path}')
+    if system.upper() not in ["ASCAT", "ERA5"]:
+        raise ValueError("system must be ASCAT or ERA5 (case-insensitive)")
+
     # get unique key for raw data file (lon, lat)
     ismn_sites = pd.read_csv(ismn_site_survey_path)
     site_info = ismn_sites[ismn_sites.ISMN_Station_Name == station_name]
@@ -38,13 +44,20 @@ def collect_data(data_path: Path, ismn_site_survey_path: Path, station_name: str
 
     raise ValueError(f'No data was found for {station_name}, {system} in {data_path}')
 
+@validate_call(config=ConfigDict(arbitrary_types_allowed=True))
 def round_nearest_hour_index(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Rounds timestamps to nearest hour then sets as the index. Indirect form of interpolation.
+    Rounds timestamps to the nearest hour then sets as the index. Indirect form of interpolation.
     ASSUMPTION: satellite passes are infrequent enough that duplicate timestamps won't be created
     :param df: from collect_data() and check_df_cols()
     :return: pandas DataFrame with DatetimeIndex of rounded timestamps
     """
+    # check input values
+    if df.empty:
+        raise ValueError('df must not be empty')
+    if not {'time'}.issubset(df.columns):
+        raise KeyError('df must contain time column')
+
     df_copy = df.copy()
 
     df_copy[c.DATETIMEINDEX_NAME] = pd.to_datetime(df_copy["time"], utc=True)
@@ -55,6 +68,7 @@ def round_nearest_hour_index(df: pd.DataFrame) -> pd.DataFrame:
 
     return df_copy
 
+@validate_call(config=ConfigDict(arbitrary_types_allowed=True))
 def impute_hourly(df: pd.DataFrame) -> pd.DataFrame:
     """
     Transform df to have hourly imputed values.
@@ -76,22 +90,3 @@ def impute_hourly(df: pd.DataFrame) -> pd.DataFrame:
         raise ValueError('Hourly impute failed; some missing values are present.')
 
     return df_copy
-
-# --------------------
-# Input Checking
-# --------------------
-
-def check_df_cols(df: pd.DataFrame, system: str) -> None:
-    """
-    Check if df contains all required ASCAT or ERA5 columns
-    :param df: from collect_data()
-    :param system: ASCAT or ERA5, case-insensitive
-    :return:
-    """
-    if system.upper() == "ASCAT":
-        required_cols = {'time', 'backscatter40', 'swath_indicator', 'as_des_pass', 'sat_id'}
-    else: # ERA5
-        required_cols = {'time', 'skt', 'stl1', 'stl2', 'swvl1', 'swvl2', 'sd'}
-
-    if not required_cols.issubset(df.columns):
-        raise KeyError(f'{system} df must contain all of these columns: {str(required_cols)}')

@@ -1,10 +1,12 @@
 import pandas as pd
 import numpy as np
 import datetime
+from pydantic import validate_call, ConfigDict
 
 from src.data_preparation.general import validate_time_index
 
 
+@validate_call(config=ConfigDict(arbitrary_types_allowed=True))
 def get_nan_gaps(df: pd.DataFrame, long_variable: str) -> pd.DataFrame:
     """
     Determines nan gaps in the long_variable column of the df.
@@ -20,11 +22,10 @@ def get_nan_gaps(df: pd.DataFrame, long_variable: str) -> pd.DataFrame:
         - next_(long_variable): value after the gap
     """
     # check input values
-    if long_variable not in df.columns:
-        raise KeyError(f'df missing required column "{long_variable}".')
     if df.empty:
         raise ValueError('df must not be empty')
-    # check input df index
+    if long_variable not in df.columns:
+        raise KeyError(f'df missing required column "{long_variable}".')
     validate_time_index(df)
 
     df_copy = df.copy()
@@ -68,6 +69,7 @@ def get_nan_gaps(df: pd.DataFrame, long_variable: str) -> pd.DataFrame:
 
     return results
 
+@validate_call(config=ConfigDict(arbitrary_types_allowed=True))
 def add_missed_transitions_col(df: pd.DataFrame) -> pd.DataFrame:
     """
     Adds a boolean column indicating if an F/T transition occurred during a NaN gap.
@@ -88,6 +90,7 @@ def add_missed_transitions_col(df: pd.DataFrame) -> pd.DataFrame:
 
     return df_copy
 
+@validate_call(config=ConfigDict(arbitrary_types_allowed=True))
 def make_nan_window(df: pd.DataFrame, long_variable: str, start: datetime.datetime, end: datetime.datetime) -> pd.DataFrame:
     """
     Set records between start and end timestamps (inclusive) to np.nan.
@@ -97,19 +100,9 @@ def make_nan_window(df: pd.DataFrame, long_variable: str, start: datetime.dateti
     :param end: naive datetime.datetime object
     :return: df with specified records set to NaN
     """
-    # check data types
-    if not isinstance(df, pd.DataFrame):
-        raise TypeError('df must be a DataFrame')
-    if not isinstance(long_variable, str):
-        raise TypeError('long_variable must be a string')
-    if not isinstance(start, datetime.datetime):
-        raise TypeError('start must be a naive datetime.datetime object')
-    if not isinstance(end, datetime.datetime):
-        raise TypeError('end must be a naive datetime.datetime object')
-    # check values
+    # check input values
     if long_variable not in df.columns:
         raise KeyError(f'Missing required column "{long_variable}".')
-    # check input df index
     validate_time_index(df)
 
     # add timezone
@@ -118,15 +111,16 @@ def make_nan_window(df: pd.DataFrame, long_variable: str, start: datetime.dateti
 
     # check start and end
     if start not in df.index:
-        raise KeyError(f'df must contain data from {start}.')
+        raise KeyError(f'df must contain data from {start} (hour must be specified).')
     if end not in df.index:
-        raise KeyError(f'df must contain data from {end}.')
+        raise KeyError(f'df must contain data from {end} (hour must be specified).')
 
     df_copy = df.copy()
     df_copy.loc[start:end, long_variable] = np.nan
 
     return df_copy
 
+@validate_call(config=ConfigDict(arbitrary_types_allowed=True))
 def make_nan_indices(df: pd.DataFrame, long_variable: str, timestamps: pd.DatetimeIndex) -> pd.DataFrame:
     """
     Set long_variable of rows in df that match timestamps by index to np.nan.
@@ -135,19 +129,11 @@ def make_nan_indices(df: pd.DataFrame, long_variable: str, timestamps: pd.Dateti
     :param timestamps: timezone-aware pd.DatetimeIndex
     :return: df with specified records set to NaN
     """
-    # check data types
-    if not isinstance(df, pd.DataFrame):
-        raise TypeError('df must be a DataFrame')
-    if not isinstance(long_variable, str):
-        raise TypeError('long_variable must be a string')
-    if not isinstance(timestamps, pd.DatetimeIndex):
-        raise TypeError("timestamps must be a pd.DatetimeIndex")
-    # check values
+    # check input values
     if long_variable not in df.columns:
         raise KeyError(f'Missing required column "{long_variable}".')
     if timestamps.tz is None:
         raise ValueError("timestamps must be timezone-aware")
-    # check input df index
     validate_time_index(df)
 
     df_copy = df.copy()
