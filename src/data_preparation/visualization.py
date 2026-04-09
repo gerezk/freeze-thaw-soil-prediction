@@ -6,6 +6,7 @@ import plotly.express as px
 from plotly.graph_objects import Figure
 
 from src.data_preparation.general import validate_time_index
+from src.constants import constants as c
 
 
 def plot(df: pd.DataFrame, variable: str, station: str, system: str, form: str,
@@ -28,17 +29,8 @@ def plot(df: pd.DataFrame, variable: str, station: str, system: str, form: str,
     # check input data types
     if not isinstance(df, pd.DataFrame):
         raise TypeError("df must be a pandas DataFrame")
-    if not isinstance(variable, str):
-        raise TypeError("variable must be a string")
-    if not isinstance(station, str):
-        raise TypeError("station must be a string")
-    if not isinstance(system, str):
-        raise TypeError("system must be a string")
     if not isinstance(form, str):
         raise TypeError("form must be a string")
-    if y_label is not None:
-        if not isinstance(y_label, str):
-            raise TypeError("y_label must be a string")
     # check input values
     if df.empty:
         raise ValueError('df must not be empty')
@@ -99,7 +91,7 @@ def plot(df: pd.DataFrame, variable: str, station: str, system: str, form: str,
     ax.set_xlabel('Date')
     ax.tick_params(axis='x', rotation=30)
 
-    if variable == 'soil_temp':
+    if variable == c.ISMN_LONG_VAR_NAME:
         ax.axhline(y=0, color='k')
 
     return ax
@@ -112,13 +104,8 @@ def map_stations(path: Path, save_image=False) -> Figure:
     :return: plotly.graph_objects.Figure
     """
     # check input data type
-    if not isinstance(path, Path):
-        raise TypeError
     if not isinstance(save_image, bool):
         raise TypeError('save_image must be a bool')
-
-    if not path.exists():
-        raise ValueError("path does not exist")
 
     df = pd.read_csv(path)
 

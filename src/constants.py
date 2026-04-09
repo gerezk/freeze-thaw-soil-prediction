@@ -21,7 +21,7 @@ class Constants(BaseModel):
         end=datetime(2025, 1, 1)
     )
 
-    # symmetric boundary across the freezing point in celsius
+    # symmetric boundary across the freezing point in Celsius
     CLASS_BOUNDARY: float = 1.0
 
     BASE_DIR: Path = Path(__file__).resolve().parent

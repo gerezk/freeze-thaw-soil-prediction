@@ -19,21 +19,6 @@ def collect_data(data_path: Path, ismn_site_survey_path: Path, station_name: str
     :param system: ASCAT or ERA5, case-insensitive
     :return: pandas DataFrame
     """
-    # check input data types
-    if not isinstance(data_path, Path):
-        raise TypeError("path must be a Path object")
-    if not isinstance(ismn_site_survey_path, Path):
-        raise TypeError("ismn_site_survey_path must be a Path object")
-    if not isinstance(system, str):
-        raise TypeError("system must be a string")
-    # check input values
-    if not data_path.is_dir():
-        raise NotADirectoryError(f'{data_path} must point to a directory')
-    if not ismn_site_survey_path.is_file():
-        raise FileNotFoundError(f'File not found at {ismn_site_survey_path}')
-    if system.upper() not in ["ASCAT", "ERA5"]:
-        raise ValueError("system must be ASCAT or ERA5 (case-insensitive)")
-
     # get unique key for raw data file (lon, lat)
     ismn_sites = pd.read_csv(ismn_site_survey_path)
     site_info = ismn_sites[ismn_sites.ISMN_Station_Name == station_name]
@@ -103,13 +88,6 @@ def check_df_cols(df: pd.DataFrame, system: str) -> None:
     :param system: ASCAT or ERA5, case-insensitive
     :return:
     """
-    # check input data type
-    if not isinstance(system, str):
-        raise TypeError("system must be a string")
-    # check input value
-    if system.upper() not in ["ASCAT", "ERA5"]:
-        raise ValueError("system must be ASCAT or ERA5 (case-insensitive)")
-
     if system.upper() == "ASCAT":
         required_cols = {'time', 'backscatter40', 'swath_indicator', 'as_des_pass', 'sat_id'}
     else: # ERA5

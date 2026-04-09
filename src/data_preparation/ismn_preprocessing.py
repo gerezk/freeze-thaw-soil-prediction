@@ -6,9 +6,6 @@ from numbers import Real
 from src.data_preparation.general import validate_time_index
 from src.constants import constants as c
 
-# --------------------
-# Data Preprocessing
-# --------------------
 
 def collect_data(path: Path, max_depth: Real, short_variable: str, long_variable: str) -> pd.DataFrame:
     """
@@ -23,21 +20,6 @@ def collect_data(path: Path, max_depth: Real, short_variable: str, long_variable
     :param long_variable: full variable name
     :return: df
     """
-    # check input data types
-    if not isinstance(path, Path):
-        raise TypeError("path must be a pathlib.Path")
-    if not isinstance(max_depth, Real):
-        raise TypeError("max_depth must be a real number")
-    if not isinstance(short_variable, str):
-        raise TypeError("short_variable must be a string")
-    if not isinstance(long_variable, str):
-        raise TypeError("long_variable must be a string")
-    # check input values
-    if not path.is_dir():
-        raise NotADirectoryError(f'{path} must point to a directory')
-    if max_depth < 0:
-        raise ValueError('depth must be non-negative')
-
     # find depth closest to max_depth
     depths = []
     for file in path.iterdir():
@@ -87,10 +69,10 @@ def create_timestamp_col(df: pd.DataFrame) -> pd.DataFrame:
     :return: df with timestamp (datetime64[us, UTC]) index
     """
     # check input values
-    if not {'UTC_date', 'UTC_time'}.issubset(df.columns):
-        raise KeyError('df must contain UTC_date and UTC_time columns')
     if df.empty:
         raise ValueError('df must not be empty')
+    if not {'UTC_date', 'UTC_time'}.issubset(df.columns):
+        raise KeyError('df must contain UTC_date and UTC_time columns')
 
     df_copy = df.copy()
 

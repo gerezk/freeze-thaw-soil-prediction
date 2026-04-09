@@ -2,7 +2,6 @@ import pandas as pd
 from datetime import datetime
 from typing import cast, List
 from numbers import Real
-import math
 import logging
 logger = logging.getLogger(__name__)
 
@@ -34,7 +33,7 @@ def filter_df(df: pd.DataFrame, start: datetime, end: datetime) -> pd.DataFrame:
 
 def add_class_col(df: pd.DataFrame, variable: str, col_name: str, boundary: Real, classes: List[str]) -> pd.DataFrame:
     """
-    Adds class column to dataframe based on a boundary mirrored cross the freezing point in C.
+    Adds a class column to dataframe based on a boundary mirrored cross the freezing point in C.
     Classes must be a list of strings of length three, with elements in descending order by temperature.
     :param df: from collect_data()
     :param variable: variable name
@@ -48,17 +47,6 @@ def add_class_col(df: pd.DataFrame, variable: str, col_name: str, boundary: Real
         raise TypeError(f'{variable} column in df must be a numeric type')
     if not isinstance(col_name, str):
         raise TypeError(f'{col_name} must be a string')
-    if not isinstance(boundary, Real):
-        raise TypeError('boundary must be a number')
-    if not isinstance(classes, list):
-        raise TypeError('classes must be a list')
-    if not all(isinstance(x, str) for x in classes):
-        raise TypeError('All elements in classes must be strings')
-    # check data values
-    if math.isclose(boundary, 0):
-        raise ValueError('boundary must not be zero')
-    if len(classes) != 3:
-        raise ValueError('classes must have exactly 3 elements')
     
     def classify_value(x):
         """Return class label of x based on boundary and classes."""

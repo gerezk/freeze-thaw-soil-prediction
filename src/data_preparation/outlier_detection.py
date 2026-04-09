@@ -14,14 +14,9 @@ def find_outlier_spikes(df: pd.DataFrame, long_variable: str, threshold: Real) -
     :param threshold: number
     :return: pd.DatetimeIndex with timezone containing timestamps of outliers
     """
-    # check input data types
-    if not isinstance(threshold, Real):
-        raise TypeError("threshold must be a real number")
     # check input values
     if long_variable not in df.columns:
         raise KeyError(f'Missing required column "{long_variable}".')
-    if threshold <= 0:
-        raise ValueError(f'threshold must be greater than 0.')
     # check input df index
     validate_time_index(df)
 
