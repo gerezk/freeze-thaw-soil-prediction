@@ -4,8 +4,8 @@ from pydantic import validate_call, ConfigDict
 import logging
 logger = logging.getLogger(__name__)
 
-from src.data_preparation.validation import validate_time_index
-from src.internal_functions import classify_value
+from freeze_thaw.data_preparation.validation import validate_time_index
+from freeze_thaw.internal_functions import classify_value
 
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))

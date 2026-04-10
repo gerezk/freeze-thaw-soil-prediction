@@ -60,6 +60,49 @@ freeze/thaw transitions, providing a reproducible and observation-driven alterna
   - tbd
 - Jupyter Notebook 
 
+## ▶️ How to Run
+
+### Setup
+
+You must have Python 3.12 installed. 
+
+
+#### Conda
+
+If using conda, create environment from `environment.yml` then install `src` as 
+a package:
+
+```
+conda env create -f environment.yml
+conda activate ft-soil
+```
+
+#### venv and pip
+
+Otherwise, use virtual environment and `requirements.txt`:
+
+```
+python3.12 -m venv .venv
+```
+
+If using Mac/Linux:
+
+```
+source .venv/bin/activate
+```
+
+If using Windows:
+
+```
+.venv\Scripts\activate
+```
+
+Install requirements:
+
+```
+pip install -r requirements.txt
+```
+
 ## ℹ️ Sources
 
 The raw ASCAT and ERA5 data files can be found at https://doi.org/10.5281/zenodo.19259521.

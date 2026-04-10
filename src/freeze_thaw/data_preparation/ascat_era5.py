@@ -2,8 +2,8 @@ import pandas as pd
 from pathlib import Path
 from pydantic import validate_call, ConfigDict
 
-from src.constants import constants as c
-from src.data_preparation.validation import validate_time_index
+from freeze_thaw.constants import constants as c
+from freeze_thaw.data_preparation.validation import validate_time_index
 
 
 @validate_call

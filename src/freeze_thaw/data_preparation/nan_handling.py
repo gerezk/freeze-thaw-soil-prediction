@@ -3,7 +3,7 @@ import numpy as np
 import datetime
 from pydantic import validate_call, ConfigDict
 
-from src.data_preparation.general import validate_time_index
+from freeze_thaw.data_preparation.validation import validate_time_index
 
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))

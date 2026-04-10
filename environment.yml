@@ -3,17 +3,18 @@ channels:
   - conda-forge
 dependencies:
   - python=3.12
-  - ipykernel
-  - jupyterlab
+  - ipykernel=7.2.0
+  - jupyterlab=4.5.6
 
   # Keep heavy compiled libs in conda
-  - numpy=2.4
-  - pandas=3.0
-  - scikit-learn=1.8
-  - matplotlib=3.10
-  - seaborn=0.13
+  - numpy=2.4.4
+  - pandas=3.0.2
+  - scikit-learn=1.8.0
+  - matplotlib=3.10.8
+  - seaborn=0.13.2
 
   - pip
   - pip:
       - plotly==6.6.0
       - pydantic==2.12.5
+      - -e file:.

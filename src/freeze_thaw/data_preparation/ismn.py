@@ -4,8 +4,8 @@ from pathlib import Path
 from numbers import Real
 from pydantic import validate_call, ConfigDict
 
-from src.data_preparation.general import validate_time_index
-from src.constants import constants as c
+from freeze_thaw.data_preparation.validation import validate_time_index
+from freeze_thaw.constants import constants as c
 
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))

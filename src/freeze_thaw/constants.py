@@ -8,6 +8,23 @@ Application constants that should not change during runtime.
 Changes to the classes, other than the default values will most likely break the program.
 """
 
+def find_repo_root(start: Path | None = None) -> Path:
+    """
+    Find the root of the repository.
+    :param start: path to start from, defaults to the current working directory
+    :return: path to the root of the repository
+    """
+    start = start or Path(__file__).resolve()
+
+    for parent in [start] + list(start.parents):
+        if (parent / "pyproject.toml").exists():
+            return parent
+        if (parent / ".git").exists():
+            return parent
+
+    raise RuntimeError("Could not find repository root")
+
+
 class DateRange(BaseModel):
     start: datetime
     end: datetime
@@ -24,7 +41,7 @@ class Constants(BaseModel):
     # symmetric boundary across the freezing point in Celsius
     CLASS_BOUNDARY: float = 1.0
 
-    REPO_ROOT: Path = Path(__file__).resolve().parent.parent
+    REPO_ROOT: Path = find_repo_root()
     SITE_SURVEY_PATH: Path = REPO_ROOT / "ISMN_site_survey.csv"
     CLEANED_DATA_PATH: Path = REPO_ROOT / "data" / "cleaned"
 

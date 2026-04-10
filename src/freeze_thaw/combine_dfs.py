@@ -1,8 +1,8 @@
 import pandas as pd
 from pathlib import Path
 
-from src.constants import constants as c
-from src.internal_functions import classify_value
+from freeze_thaw.constants import constants as c
+from freeze_thaw.internal_functions import classify_value
 
 
 def main(station_name: str, cleaned_data_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -46,5 +46,5 @@ def main(station_name: str, cleaned_data_path: Path) -> tuple[pd.DataFrame, pd.D
 
 if __name__ == "__main__":
     station = 'Aberdeen-35-WNW'
-    data_path = Path("../data/cleaned")
+    data_path = Path("../../data/cleaned")
     main(station, data_path)

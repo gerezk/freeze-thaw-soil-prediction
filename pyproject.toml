@@ -1,0 +1,11 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "freeze-thaw-soil-prediction"
+version = "0.1.0"
+description = "Predicting soil freeze/thaw transitions with ML from ASCAT data, validated by ERA5 & ISMN data."
+
+[tool.setuptools.packages.find]
+where = ["src"]
