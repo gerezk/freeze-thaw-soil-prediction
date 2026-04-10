@@ -33,9 +33,7 @@ def main(station_name: str, cleaned_data_path: Path) -> tuple[pd.DataFrame, pd.D
     combined_df = combined_df.sort_index()
 
     # add label based on ISMN temp to each record
-    combined_df['class'] = (combined_df[c.ISMN_LONG_VAR_NAME]
-                            .map(lambda x: c.CLASSES[0] if x>abs(c.CLASS_BOUNDARY) else (c.CLASSES[1] if x >= -abs(c.CLASS_BOUNDARY) else c.CLASSES[2]))
-                            )
+    combined_df['class'] = combined_df[c.ISMN_LONG_VAR_NAME].map(classify_value)
 
     # split into two dfs
     ascat_df = combined_df[c.ASCAT_KEY_COLS + [c.ISMN_LONG_VAR_NAME, 'class']]

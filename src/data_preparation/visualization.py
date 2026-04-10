@@ -124,7 +124,7 @@ def map_stations(path: Path, save_image: bool = False) -> Figure:
         showcountries=True
     )
     if save_image:
-        images_dir = Path("../images")
+        images_dir = c.REPO_ROOT / "images"
         images_dir.mkdir(parents=True, exist_ok=True)
         fig.write_image(images_dir / "map_ISMN_stations.png")
 

@@ -138,7 +138,9 @@ def make_nan_indices(df: pd.DataFrame, long_variable: str, timestamps: pd.Dateti
 
     df_copy = df.copy()
 
-    # use default exception throwing if an index in timestamps is not in df.DatetimeIndex
-    df_copy.loc[timestamps.to_list(), [long_variable]] = np.nan
+    # Vectorized operation to set specified records to NaN
+    mask = df.index.normalize().isin(timestamps)
+    df_copy.loc[mask, long_variable] = np.nan
+
 
     return df_copy

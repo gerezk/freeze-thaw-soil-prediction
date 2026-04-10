@@ -24,9 +24,9 @@ class Constants(BaseModel):
     # symmetric boundary across the freezing point in Celsius
     CLASS_BOUNDARY: float = 1.0
 
-    BASE_DIR: Path = Path(__file__).resolve().parent
-    SITE_SURVEY_PATH: Path = BASE_DIR / "../ISMN_site_survey.csv"
-    CLEANED_DATA_PATH: Path = BASE_DIR / "../data/cleaned"
+    REPO_ROOT: Path = Path(__file__).resolve().parent.parent
+    SITE_SURVEY_PATH: Path = REPO_ROOT / "ISMN_site_survey.csv"
+    CLEANED_DATA_PATH: Path = REPO_ROOT / "data" / "cleaned"
 
     ASCAT_KEY_COLS: list[str] = Field(default_factory=lambda: [
         'backscatter40', 'swath_indicator', 'as_des_pass', 'sat_id'
