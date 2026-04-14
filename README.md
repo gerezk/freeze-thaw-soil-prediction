@@ -24,7 +24,7 @@ The primary research question guiding this project is:
 > How does ML-processed ASCAT data compare to ERA5 in accurately predicting soil freeze/thaw transitions?
 
 A set of 10 ISMN stations was created, and the locations of the stations are depicted below.
-![](/images/map_ISMN_stations.png)
+![](/images/for_README/map_ISMN_stations.png)
 
 ## 🎯 Motivation
 
@@ -56,6 +56,7 @@ freeze/thaw transitions, providing a reproducible and observation-driven alterna
   - NumPy
   - Matplotlib
   - Plotly
+  - Pydantic
 - Machine learning
   - tbd
 - Jupyter Notebook 
@@ -66,11 +67,9 @@ freeze/thaw transitions, providing a reproducible and observation-driven alterna
 
 You must have Python 3.12 installed. 
 
-
 #### Conda
 
-If using conda, create environment from `environment.yml` then install `src` as 
-a package:
+If using conda, create environment from `environment.yml`:
 
 ```
 conda env create -f environment.yml
@@ -123,6 +122,21 @@ series format. The ERA5 data are provided on a 0.25 degree grid and data
 has not been altered during data conversion. The time series of the
 closest grid point of the ERA5 dataset has been extracted of each in
 situ station.
+
+[ISMN T&Cs](https://ismn.earth/en/terms-and-conditions/) forbids the re-export or transfer 
+of the original data to third parties. Therefore, the ISMN data used for this analysis is 
+not included in this repo or elsewhere. The data used for the analysis can be downloaded 
+from the data provider using the following steps:
+1. Create an account at [ismn.earth](https://ismn.earth/en/).
+2. Click on "Data Access" on the home page, then set the initial filters:
+![](/images/for_README/ISMN_initial_filters.png)
+3. Search for stations:
+![](/images/for_README/station_example.png)
+4. Create and execute an area filter around the station of interest, then click "Download" using
+the four steps depicted below:
+![](/images/for_README/area_filter.png)
+5. Select the following parameters, then click on "your requests" to download the data.
+![](/images/for_README/download.png)
 
 ## 🙏 Acknowledgements
 
