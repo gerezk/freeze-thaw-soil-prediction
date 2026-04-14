@@ -24,6 +24,7 @@ The primary research question guiding this project is:
 > How does ML-processed ASCAT data compare to ERA5 in accurately predicting soil freeze/thaw transitions?
 
 A set of 10 ISMN stations was created, and the locations of the stations are depicted below.
+
 ![](/images/for_README/map_ISMN_stations.png)
 
 ## 🎯 Motivation
@@ -129,13 +130,20 @@ not included in this repo or elsewhere. The data used for the analysis can be do
 from the data provider using the following steps:
 1. Create an account at [ismn.earth](https://ismn.earth/en/).
 2. Click on "Data Access" on the home page, then set the initial filters:
+
 ![](/images/for_README/ISMN_initial_filters.png)
+
 3. Search for stations:
+
 ![](/images/for_README/station_example.png)
+
 4. Create and execute an area filter around the station of interest, then click "Download" using
 the four steps depicted below:
+
 ![](/images/for_README/area_filter.png)
+
 5. Select the following parameters, then click on "your requests" to download the data.
+
 ![](/images/for_README/download.png)
 
 ## 🙏 Acknowledgements
