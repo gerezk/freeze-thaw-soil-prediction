@@ -105,7 +105,8 @@ pip install -r requirements.txt
 
 ## ℹ️ Sources
 
-The raw ASCAT and ERA5 data files can be found at https://doi.org/10.5281/zenodo.19259521.
+The raw ASCAT and ERA5 data files can be found at 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19259520.svg)](https://doi.org/10.5281/zenodo.19259520).
 
 The individual swath orbit files from the **ASCAT** Surface Soil Moisture
 (SSM) Climate Data Record (CDR) v8 at 12.5 km sampling (H121,
