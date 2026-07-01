@@ -1,3 +1,7 @@
+"""
+Functions specifically for pre-processing ASCAT and ERA5 data.
+"""
+
 import pandas as pd
 from pathlib import Path
 from pydantic import validate_call, ConfigDict

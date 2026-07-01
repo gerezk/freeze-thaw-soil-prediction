@@ -1,3 +1,7 @@
+"""
+Functions specifically for pre-processing ISMN data.
+"""
+
 import pandas as pd
 import numpy as np
 from pathlib import Path

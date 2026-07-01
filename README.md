@@ -52,12 +52,12 @@ freeze/thaw transitions, providing a reproducible and observation-driven alterna
 
 ## 🛠️ Tech Stack
 - Python (3.12)
+- Pydantic
 - Data manipulation, analysis, & visualization
   - pandas
   - NumPy
   - Matplotlib
   - Plotly
-  - Pydantic
 - Machine learning
   - tbd
 - Jupyter Notebook 

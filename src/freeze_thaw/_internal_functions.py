@@ -1,8 +1,9 @@
-from freeze_thaw.constants import constants as c
-
 """
 Internal functions used in src.
 """
+
+from freeze_thaw.constants import constants as c
+
 
 def classify_value(x):
     """

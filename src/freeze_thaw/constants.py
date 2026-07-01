@@ -1,38 +1,56 @@
+"""
+Application constants that should not change during runtime.
+Changes to the classes, other than the default values will most likely break the program.
+
+Editable values (edited at last line)
+---------------
+DateRange:
+    start               Start of the date range for data pre-processing
+    end                 End of the date range for data pre-processing
+
+Constants:
+    DATE_RANGE          DateRange instance (see above)
+    CLASS_BOUNDARY      Symmetric temperature boundary (°C) around the freezing point
+    SITE_SURVEY_PATH    Path to the ISMN site survey CSV, relative to repo root
+    CLEANED_DATA_PATH   Path to the cleaned data directory, relative to repo root
+    ASCAT_KEY_COLS      Columns to extract from raw ASCAT data
+    ERA5_KEY_COLS       Columns to extract from raw ERA5 data
+    ISMN_KEY_COLS       Columns to extract from raw ISMN data
+    CLASSES             Freeze-thaw class labels, must be length 3 in descending temperature order
+    DATETIMEINDEX_NAME  Name of the datetime index column in the cleaned data
+    ISMN_LONG_VAR_NAME  Long variable name for ISMN soil temperature
+
+StationName:
+    Enum members can be added or removed to match the ISMN site survey CSV.
+    The enum value must exactly match the ISMN_Station_Name column in the CSV.
+
+Note: REPO_ROOT is derived automatically and should not be edited.
+"""
+
 from datetime import datetime
 from pathlib import Path
 from pydantic import BaseModel, Field, model_validator
 from enum import Enum
+import pandas as pd
 
-"""
-Application constants that should not change during runtime.
-Changes to the classes, other than the default values will most likely break the program.
-"""
-
-def find_repo_root(start: Path | None = None) -> Path:
-    """
-    Find the root of the repository.
-    :param start: path to start from, defaults to the current working directory
-    :return: path to the root of the repository
-    """
-    start = start or Path(__file__).resolve()
-
-    for parent in [start] + list(start.parents):
-        if (parent / "pyproject.toml").exists():
-            return parent
-        if (parent / ".git").exists():
-            return parent
-
-    raise RuntimeError("Could not find repository root")
+from freeze_thaw.utils import find_repo_root
 
 
 class DateRange(BaseModel):
     start: datetime
     end: datetime
 
+    @model_validator(mode="after")
+    def validate_order(self):
+        if self.start >= self.end:
+            raise ValueError("start must be before end")
+        return self
+
 
 class Constants(BaseModel):
     model_config = {"frozen": True}
 
+    # sets date range for data pre-processing
     DATE_RANGE: DateRange = DateRange(
         start=datetime(2007, 1, 1),
         end=datetime(2025, 1, 1)
@@ -48,7 +66,6 @@ class Constants(BaseModel):
     ASCAT_KEY_COLS: list[str] = Field(default_factory=lambda: [
         'backscatter40', 'swath_indicator', 'as_des_pass', 'sat_id'
     ])
-
     ERA5_KEY_COLS: list[str] = Field(default_factory=lambda: ['stl1'])
     ISMN_KEY_COLS: list[str] = Field(default_factory=lambda: ['soil_temp'])
 
@@ -64,8 +81,6 @@ class Constants(BaseModel):
 
     @model_validator(mode="after")
     def validate(self):
-        if self.DATE_RANGE.start >= self.DATE_RANGE.end:
-            raise ValueError("DATE_RANGE.start must be before DATE_RANGE.end.")
         if self.CLASS_BOUNDARY <= 0:
             raise ValueError("CLASS_BOUNDARY must be positive.")
         if not self.SITE_SURVEY_PATH.is_file():
@@ -76,9 +91,21 @@ class Constants(BaseModel):
             self.CLEANED_DATA_PATH.mkdir(parents=True, exist_ok=True)
         return self
 
+    @model_validator(mode="after")
+    def validate_stations_in_sync(self):
+        csv_names = set(pd.read_csv(self.SITE_SURVEY_PATH)['ISMN_Station_Name'])
+        enum_names = {s.value for s in StationName}
+        if csv_names != enum_names:
+            raise ValueError(f"StationName enum is out of sync with CSV: "
+                             f"missing {csv_names - enum_names}, "
+                             f"extra {enum_names - csv_names}")
+        return self
+
 
 class StationName(str, Enum):
-    """Editable values for ISMN stations. Stations can be added or removed."""
+    """
+    Editable values for ISMN stations. Stations can be added or removed.
+    Values must be in sync with those in ISMN_site_survey.csv."""
     ABERDEEN = 'Aberdeen-35-WNW'
     JAMESTOWN = 'Jamestown-38-WSW'
     GOBBLERS_KNOB = 'GobblersKnob'
