@@ -47,7 +47,7 @@ class DateRange(BaseModel):
         return self
 
 
-class Constants(BaseModel):
+class Config(BaseModel):
     model_config = {"frozen": True}
 
     # sets date range for data pre-processing
@@ -121,4 +121,5 @@ class StationName(str, Enum):
         return self.value
 
 # assign values here if needed
-constants = Constants()
+# dateRange = DateRange()
+config = Config()

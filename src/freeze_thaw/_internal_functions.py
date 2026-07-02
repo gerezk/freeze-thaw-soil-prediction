@@ -2,7 +2,7 @@
 Internal functions used in src.
 """
 
-from freeze_thaw.constants import constants as c
+from freeze_thaw.config import config as c
 
 
 def classify_value(x):
