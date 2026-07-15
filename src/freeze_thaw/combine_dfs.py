@@ -1,16 +1,16 @@
 import pandas as pd
 from pathlib import Path
 
-from freeze_thaw.constants import constants as c
-from freeze_thaw.internal_functions import classify_value
+from freeze_thaw.config import config as c
+from freeze_thaw._internal_functions import classify_value
 
 
 def main(station_name: str, cleaned_data_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Processing and labeling of cleaned data csv files.
+    Processing, combining of ISMN, ASCAT, and ERA5 data via inner join on timestamps, and labeling of records.
     :param station_name: name of the ISMN station
     :param cleaned_data_path: path to the cleaned data directory
-    :return: dfs for ASCAT and ERA5 data
+    :return: two dfs for ASCAT and ERA5 data
     """
     # find relevant csv files then import as df and append to list
     dfs = []

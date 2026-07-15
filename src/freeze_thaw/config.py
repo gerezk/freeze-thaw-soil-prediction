@@ -69,9 +69,9 @@ class Config(BaseModel):
     ERA5_KEY_COLS: list[str] = Field(default_factory=lambda: ['stl1'])
     ISMN_KEY_COLS: list[str] = Field(default_factory=lambda: ['soil_temp'])
 
-    # must be ordered in descending temperature
+    # must be ordered in ascending temperature
     CLASSES: list[str] = Field(
-        default_factory=lambda: ['thawed', 'transition', 'frozen'],
+        default_factory=lambda: ['frozen', 'transition', 'thawed'],
         min_length=3,
         max_length=3
     )

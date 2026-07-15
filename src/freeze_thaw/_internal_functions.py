@@ -10,9 +10,11 @@ def classify_value(x):
     Return class label of x based on boundary and classes.
     For use in .map()
     """
-    if x > abs(c.CLASS_BOUNDARY):
+    if x < -abs(c.CLASS_BOUNDARY):
         return c.CLASSES[0]
-    elif x >= -abs(c.CLASS_BOUNDARY):
+    elif x <= abs(c.CLASS_BOUNDARY):
         return c.CLASSES[1]
-    else:
+    elif x >= abs(c.CLASS_BOUNDARY):
         return c.CLASSES[2]
+    else: # NaN handling
+        return None
