@@ -8,7 +8,7 @@ from pathlib import Path
 from numbers import Real
 from pydantic import validate_call, ConfigDict
 
-from freeze_thaw.data_preparation.validation import validate_time_index
+from freeze_thaw.validation import validate_time_index
 from freeze_thaw.config import config as c
 
 

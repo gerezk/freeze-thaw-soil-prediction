@@ -5,7 +5,7 @@ from pathlib import Path
 import logging
 logger = logging.getLogger(__name__)
 
-from freeze_thaw.data_preparation.validation import validate_time_index
+from freeze_thaw.validation import validate_time_index
 from freeze_thaw._internal_functions import classify_value
 from freeze_thaw.config import config as c
 from freeze_thaw.config import StationName

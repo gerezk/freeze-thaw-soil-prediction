@@ -6,7 +6,7 @@ import plotly.express as px
 from plotly.graph_objects import Figure
 from pydantic import validate_call, ConfigDict
 
-from freeze_thaw.data_preparation.validation import validate_time_index
+from freeze_thaw.validation import validate_time_index
 from freeze_thaw.config import config as c
 from freeze_thaw.config import StationName
 
