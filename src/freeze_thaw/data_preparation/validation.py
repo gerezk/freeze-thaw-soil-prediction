@@ -22,12 +22,14 @@ def check_df_cols(df: pd.DataFrame, system: str) -> None:
     Check if df contains all required ASCAT or ERA5 columns
     :param df: from collect_data()
     :param system: ASCAT or ERA5, case-insensitive
-    :return:
+    :return: None
     """
     if system.upper() == "ASCAT":
         required_cols = {'time', 'backscatter40', 'swath_indicator', 'as_des_pass', 'sat_id'}
-    else: # ERA5
+    elif system.upper() == "ERA5":
         required_cols = {'time', 'skt', 'stl1', 'stl2', 'swvl1', 'swvl2', 'sd'}
+    else:
+        raise TypeError("system must be ASCAT or ERA5 (case-insensitive)")
 
     if not required_cols.issubset(df.columns):
         raise KeyError(f'{system} df must contain all of these columns: {str(required_cols)}')

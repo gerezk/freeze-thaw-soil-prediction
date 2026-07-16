@@ -57,9 +57,11 @@ freeze/thaw transitions, providing a reproducible and observation-driven alterna
   - pandas
   - NumPy
   - Matplotlib
+  - Seaborn
   - Plotly
-- Machine learning
-  - tbd
+- Model training & evaluation
+  - LightGBM
+  - Scikit-learn
 - Jupyter Notebook 
 
 ## ▶️ How to Run

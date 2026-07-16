@@ -1,11 +1,14 @@
 import pandas as pd
 from datetime import datetime
 from pydantic import validate_call, ConfigDict
+from pathlib import Path
 import logging
 logger = logging.getLogger(__name__)
 
 from freeze_thaw.data_preparation.validation import validate_time_index
 from freeze_thaw._internal_functions import classify_value
+from freeze_thaw.config import config as c
+from freeze_thaw.config import StationName
 
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
@@ -57,3 +60,49 @@ def add_class_col(df: pd.DataFrame, variable: str, col_name: str) -> pd.DataFram
     df_copy[col_name] = df_copy[variable].map(classify_value)
 
     return df_copy
+
+
+@validate_call
+def combine_dfs(station_name: StationName, cleaned_data_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Processing, combining of ISMN, ASCAT, and ERA5 data via inner join on timestamps, and labeling of records.
+    :param station_name: name of the ISMN station
+    :param cleaned_data_path: path to the cleaned data directory
+    :return: two dfs for ASCAT and ERA5 data
+    """
+    # find relevant csv files then import as df and append to list
+    dfs = []
+    for file in cleaned_data_path.iterdir():
+        if file.is_file():
+            file_split = file.stem.split('_')
+            if file_split[0] == station_name:
+                df = pd.read_csv(file,
+                                 index_col=c.DATETIMEINDEX_NAME,
+                                 parse_dates=[c.DATETIMEINDEX_NAME],
+                                 )
+                dfs.append(df)
+    if len(dfs) != 3:
+        raise FileNotFoundError(
+            f'{cleaned_data_path} must have exactly 3 files (ISMN, ASCAT, ERA5) for given station, {station_name}.')
+
+    # inner join all dfs along DatetimeIndex
+    combined_df = pd.merge(dfs[0], dfs[1], left_index=True, right_index=True)
+    combined_df = pd.merge(combined_df, dfs[2], left_index=True, right_index=True)
+    combined_df = combined_df.sort_index()
+
+    # add label based on ISMN temp to each record
+    combined_df['class'] = combined_df[c.ISMN_LONG_VAR_NAME].map(classify_value)
+
+    # split into two dfs
+    # avoids SettingWithCopyWarning
+    ascat_df = combined_df[
+        c.ASCAT_KEY_COLS + [c.ISMN_LONG_VAR_NAME, "class"]
+        ].copy()
+    era5_df = combined_df[
+        c.ERA5_KEY_COLS + [c.ISMN_LONG_VAR_NAME, "class"]
+        ].copy()
+
+    # add pred for ERA5
+    era5_df['pred'] = era5_df['stl1'].map(classify_value)
+
+    return ascat_df, era5_df

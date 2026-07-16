@@ -8,10 +8,11 @@ from pydantic import validate_call, ConfigDict
 
 from freeze_thaw.data_preparation.validation import validate_time_index
 from freeze_thaw.config import config as c
+from freeze_thaw.config import StationName
 
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
-def plot(df: pd.DataFrame, variable: str, station: str, system: str, form: str,
+def plot(df: pd.DataFrame, variable: str, station: StationName, system: str, form: str,
          y_label: str | None=None, start: datetime | None=None, end: datetime | None=None) -> plt.Axes:
     """
     Create a line or scatter plot of variable vs the index.

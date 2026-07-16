@@ -8,10 +8,11 @@ from pydantic import validate_call, ConfigDict
 
 from freeze_thaw.config import config as c
 from freeze_thaw.data_preparation.validation import validate_time_index
+from freeze_thaw.config import StationName
 
 
 @validate_call
-def collect_data(data_path: Path, ismn_site_survey_path: Path, station_name: str, system: str) -> pd.DataFrame:
+def collect_data(data_path: Path, ismn_site_survey_path: Path, station_name: StationName, system: str) -> pd.DataFrame:
     """
     Collect a single ASCAT or ERA5 csv file. Can handle ASCAT and ERA5 data being mixed in the same directory.
     The filename must follow this format: {gpi}_{LON:3f}_{LAT:3f}_{system}_time_series.csv
