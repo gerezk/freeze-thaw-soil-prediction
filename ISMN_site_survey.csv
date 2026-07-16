@@ -6,6 +6,6 @@ Index,ISMN_Station_Name,Region,LAT,LON,Soil_Depths_(cm),Collection_Start,Collect
 5,L38,Tibet,31.033,91.679,"5, 10, 20, 40",2010-08-01,2016-09-19,Good quality
 6,L23,Tibet,31.107,92.309,"5, 10, 20, 40",2010-08-01,2016-09-19,Good quality
 7,Nenana,Alaska,64.690,-148.910,"5, 10, 20, 50, 100",2012-09-21,Current,Good quality and has snow data
-8,GobblersKnob,Alaska,66.750,-150.670,"5, 20, 50",2016-10-01,Current,Good quality and has snow data
+8,GobblersKnob,Alaska,66.750,-150.670,"5, 20, 50",2006-10-01,Current,Good quality and has snow data
 9,Jamestown-38-WSW,North Dakota,46.770,-99.478,"0, 5, 10",2008-07-30,Current,Good quality and has surface temperature data
 10,Aberdeen-35-WNW,South Dakota,45.712,-99.130,"0, 5, 10",2007-06-26,Current,Good quality and has surface temperature data
