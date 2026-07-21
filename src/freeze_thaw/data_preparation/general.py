@@ -62,13 +62,14 @@ def add_class_col(df: pd.DataFrame, variable: str, col_name: str) -> pd.DataFram
     return df_copy
 
 
+# TODO: change documentation to have it say that all data is joined by timestamp, with three separate DFs being returned
 @validate_call
-def combine_dfs(station_name: StationName, cleaned_data_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
+def align_timestamps(station_name: StationName, cleaned_data_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Processing, combining of ISMN, ASCAT, and ERA5 data via inner join on timestamps, and labeling of records.
+    Align the three datasets on their shared DatetimeIndex using an inner join, then label records.
     :param station_name: name of the ISMN station
     :param cleaned_data_path: path to the cleaned data directory
-    :return: two dfs for ASCAT and ERA5 data
+    :return: two dfs for ASCAT and ERA5 data, with each record labelled according to ISMN soil temperature
     """
     # find relevant csv files then import as df and append to list
     dfs = []
@@ -86,8 +87,7 @@ def combine_dfs(station_name: StationName, cleaned_data_path: Path) -> tuple[pd.
             f'{cleaned_data_path} must have exactly 3 files (ISMN, ASCAT, ERA5) for given station, {station_name}.')
 
     # inner join all dfs along DatetimeIndex
-    combined_df = pd.merge(dfs[0], dfs[1], left_index=True, right_index=True)
-    combined_df = pd.merge(combined_df, dfs[2], left_index=True, right_index=True)
+    combined_df = dfs[0].join(dfs[1:], how="inner")
     combined_df = combined_df.sort_index()
 
     # add label based on ISMN temp to each record
@@ -96,7 +96,7 @@ def combine_dfs(station_name: StationName, cleaned_data_path: Path) -> tuple[pd.
     # split into two dfs
     # avoids SettingWithCopyWarning
     ascat_df = combined_df[
-        c.ASCAT_KEY_COLS + [c.ISMN_LONG_VAR_NAME, "class"]
+        c.ASCAT_KEY_COLS + ["class"]
         ].copy()
     era5_df = combined_df[
         c.ERA5_KEY_COLS + [c.ISMN_LONG_VAR_NAME, "class"]
