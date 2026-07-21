@@ -1,27 +1,25 @@
 import pandas as pd
 import numpy as np
+from typing import List
 
 
-def create_lagged_features(df: pd.DataFrame, n_lags: int) -> pd.DataFrame:
+def create_lagged_features(df: pd.DataFrame, lags: List[int]) -> pd.DataFrame:
     """
-    Creates linearly spaced lagged features derived from backscatter40, with n_lags controlling how many lags to create.
-    For example, n_lags=7 will look at the previous 7 datapoints.
+    Creates lagged features derived from backscatter40.
     :param df: pd.DataFrame
-    :param n_lags: number of lags
+    :param lags: list of lags to create
     :return: df with lagged features
     """
     if not "backscatter40" in df.columns:
         raise ValueError("backscatter40 is not in the dataframe")
     if not df.index.inferred_type == "datetime64":
         raise ValueError("df index inferred_type must be datetime64")
-    if n_lags <= 0:
-        raise ValueError("n_lags must be positive")
+    if not all(type(x) is int and x > 0 for x in lags):
+        raise ValueError("'lags' must contain only positive integers.")
 
     df_copy = df.copy()
 
-    for i in range(n_lags):
-        lag = i + 1
-
+    for lag in lags:
         df_copy[f"backscatter40_lag_{lag}"] = df_copy["backscatter40"].shift(lag)
 
         lagged_time = df_copy.index.to_series().shift(lag)
@@ -31,7 +29,7 @@ def create_lagged_features(df: pd.DataFrame, n_lags: int) -> pd.DataFrame:
         )
 
     # drop rows with incomplete lagged features
-    df_copy = df_copy.iloc[n_lags:]
+    df_copy = df_copy.iloc[max(lags):]
 
     return df_copy
 

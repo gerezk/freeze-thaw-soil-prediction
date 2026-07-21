@@ -62,11 +62,10 @@ def add_class_col(df: pd.DataFrame, variable: str, col_name: str) -> pd.DataFram
     return df_copy
 
 
-# TODO: change documentation to have it say that all data is joined by timestamp, with three separate DFs being returned
 @validate_call
 def align_timestamps(station_name: StationName, cleaned_data_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Align the three datasets on their shared DatetimeIndex using an inner join, then label records.
+    Align the three datasets on their DatetimeIndex using an inner join, then label records.
     :param station_name: name of the ISMN station
     :param cleaned_data_path: path to the cleaned data directory
     :return: two dfs for ASCAT and ERA5 data, with each record labelled according to ISMN soil temperature
