@@ -27,6 +27,37 @@ A set of 10 ISMN stations was created, and the locations of the stations are dep
 
 ![](/images/for_README/map_ISMN_stations.png)
 
+**Repository Structure:**
+
+```angular2html
+├── ISMN_site_survey.csv
+├── notebooks
+│   ├── ASCAT_ERA5_data_cleaning.ipynb
+│   ├── assess_methodology.ipynb
+│   ├── ISMN_data_cleaning.ipynb
+│   └── model_development.ipynb
+└── src
+    └── freeze_thaw
+        ├── _internal_functions.py
+        ├── config.py
+        ├── data_preparation
+        │   ├── ascat_era5.py
+        │   ├── feature_engineering.py
+        │   ├── general.py
+        │   ├── ismn.py
+        │   ├── nan_handling.py
+        │   ├── outlier_detection.py
+        │   └── splitting.py
+        ├── data_understanding
+        │   └── visualization.py
+        ├── evaluation
+        │   └── metrics.py
+        ├── modeling
+        │   └── train.py
+        ├── utils.py
+        └── validation.py
+```
+
 ## 🎯 Motivation
 
 Soil F/T dynamics play a crucial role in:
