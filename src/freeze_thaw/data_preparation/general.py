@@ -41,6 +41,7 @@ def filter_df(df: pd.DataFrame, start: datetime, end: datetime) -> pd.DataFrame:
 
     return df_copy
 
+
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
 def add_class_col(df: pd.DataFrame, variable: str, col_name: str) -> pd.DataFrame:
     """
@@ -61,16 +62,14 @@ def add_class_col(df: pd.DataFrame, variable: str, col_name: str) -> pd.DataFram
 
     return df_copy
 
-
-@validate_call
-def align_timestamps(station_name: StationName, cleaned_data_path: Path) -> tuple[pd.DataFrame, pd.DataFrame]:
+@validate_call(config=ConfigDict(arbitrary_types_allowed=True))
+def collect_cleaned_data(station_name: StationName, cleaned_data_path: Path) -> list[pd.DataFrame]:
     """
-    Align the three datasets on their DatetimeIndex using an inner join, then label records.
+    Collects cleaned ISMN, ASCAT, and ERA5 data for given ISMN station.
     :param station_name: name of the ISMN station
     :param cleaned_data_path: path to the cleaned data directory
-    :return: two dfs for ASCAT and ERA5 data, with each record labelled according to ISMN soil temperature
+    :return: list containing dfs of ISMN, ASCAT, and ERA5 data
     """
-    # find relevant csv files then import as df and append to list
     dfs = []
     for file in cleaned_data_path.iterdir():
         if file.is_file():
@@ -84,6 +83,19 @@ def align_timestamps(station_name: StationName, cleaned_data_path: Path) -> tupl
     if len(dfs) != 3:
         raise FileNotFoundError(
             f'{cleaned_data_path} must have exactly 3 files (ISMN, ASCAT, ERA5) for given station, {station_name}.')
+
+    return dfs
+
+@validate_call(config=ConfigDict(arbitrary_types_allowed=True))
+def align_timestamps_then_label(dfs: list[pd.DataFrame]) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Align the three datasets on their DatetimeIndex using an inner join, then label ASCAT and ERA5 records
+    according to ISMN soil temperature.
+    :return: ascat_df and era5_df, with each record labelled according to ISMN soil temperature. The ERA5
+    df contains the ISMN soil temperatures.
+    """
+    if len(dfs) != 3:
+        raise ValueError("dfs must be a list of length three, representing ISMN, ASCAT, and ERA5 data.")
 
     # inner join all dfs along DatetimeIndex
     combined_df = dfs[0].join(dfs[1:], how="inner")
