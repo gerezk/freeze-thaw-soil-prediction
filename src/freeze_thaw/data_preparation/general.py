@@ -5,9 +5,8 @@ from pathlib import Path
 import logging
 logger = logging.getLogger(__name__)
 
-from freeze_thaw.validation import validate_time_index
+from freeze_thaw._validation import validate_time_index
 from freeze_thaw._internal_functions import classify_value
-from freeze_thaw.config import config as c
 from freeze_thaw.config import StationName
 
 
@@ -63,11 +62,14 @@ def add_class_col(df: pd.DataFrame, variable: str, col_name: str) -> pd.DataFram
     return df_copy
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
-def collect_cleaned_data(station_name: StationName, cleaned_data_path: Path) -> list[pd.DataFrame]:
+def collect_cleaned_data(station_name: StationName,
+                         cleaned_data_path: Path,
+                         datetimeindex_name: str) -> list[pd.DataFrame]:
     """
     Collects cleaned ISMN, ASCAT, and ERA5 data for given ISMN station.
-    :param station_name: name of the ISMN station
-    :param cleaned_data_path: path to the cleaned data directory
+    :param station_name: Name of the ISMN station
+    :param cleaned_data_path: Path to the cleaned data directory
+    :param datetimeindex_name: Name of the datetime index column in the cleaned data csv file
     :return: list containing dfs of ISMN, ASCAT, and ERA5 data
     """
     dfs = []
@@ -76,8 +78,8 @@ def collect_cleaned_data(station_name: StationName, cleaned_data_path: Path) -> 
             file_split = file.stem.split('_')
             if file_split[0] == station_name:
                 df = pd.read_csv(file,
-                                 index_col=c.DATETIMEINDEX_NAME,
-                                 parse_dates=[c.DATETIMEINDEX_NAME],
+                                 index_col=datetimeindex_name,
+                                 parse_dates=[datetimeindex_name],
                                  )
                 dfs.append(df)
     if len(dfs) != 3:
@@ -87,10 +89,17 @@ def collect_cleaned_data(station_name: StationName, cleaned_data_path: Path) -> 
     return dfs
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
-def align_timestamps_then_label(dfs: list[pd.DataFrame]) -> tuple[pd.DataFrame, pd.DataFrame]:
+def align_timestamps_then_label(dfs: list[pd.DataFrame],
+                                ismn_var_name: str,
+                                ascat_key_cols: list[str],
+                                era5_key_cols: list[str]) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Align the three datasets on their DatetimeIndex using an inner join, then label ASCAT and ERA5 records
     according to ISMN soil temperature.
+    :param dfs: list of length three containing pd.DataFrames of ISMN, ASCAT, and ERA5 data
+    :param ismn_var_name: Variable name for ISMN soil temperature
+    :param ascat_key_cols: List of str that mark columns representing ASCAT data
+    :param era5_key_cols: List of str that mark columns representing ERA5 data
     :return: ascat_df and era5_df, with each record labelled according to ISMN soil temperature. The ERA5
     df contains the ISMN soil temperatures.
     """
@@ -102,15 +111,15 @@ def align_timestamps_then_label(dfs: list[pd.DataFrame]) -> tuple[pd.DataFrame, 
     combined_df = combined_df.sort_index()
 
     # add label based on ISMN temp to each record
-    combined_df['class'] = combined_df[c.ISMN_LONG_VAR_NAME].map(classify_value)
+    combined_df['class'] = combined_df[ismn_var_name].map(classify_value)
 
     # split into two dfs
     # avoids SettingWithCopyWarning
     ascat_df = combined_df[
-        c.ASCAT_KEY_COLS + ["class"]
+        ascat_key_cols + ["class"]
         ].copy()
     era5_df = combined_df[
-        c.ERA5_KEY_COLS + [c.ISMN_LONG_VAR_NAME, "class"]
+        era5_key_cols + [ismn_var_name, "class"]
         ].copy()
 
     # add pred for ERA5

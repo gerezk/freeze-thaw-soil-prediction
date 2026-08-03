@@ -6,13 +6,11 @@ import pandas as pd
 from pathlib import Path
 from pydantic import validate_call, ConfigDict
 
-from freeze_thaw.config import config as c
-from freeze_thaw.validation import validate_time_index
-from freeze_thaw.config import StationName
+from freeze_thaw._validation import validate_time_index
 
 
 @validate_call
-def collect_data(data_path: Path, ismn_site_survey_path: Path, station_name: StationName, system: str) -> pd.DataFrame:
+def collect_data(data_path: Path, ismn_site_survey_path: Path, station_name: str, system: str) -> pd.DataFrame:
     """
     Collect a single ASCAT or ERA5 csv file. Can handle ASCAT and ERA5 data being mixed in the same directory.
     The filename must follow this format: {gpi}_{LON:3f}_{LAT:3f}_{system}_time_series.csv
@@ -50,11 +48,12 @@ def collect_data(data_path: Path, ismn_site_survey_path: Path, station_name: Sta
     raise ValueError(f'No data was found for {station_name}, {system} in {data_path}')
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
-def round_nearest_hour_index(df: pd.DataFrame) -> pd.DataFrame:
+def round_nearest_hour_index(df: pd.DataFrame, datetimeindex_name: str) -> pd.DataFrame:
     """
     Rounds timestamps to the nearest hour then sets as the index. Indirect form of interpolation.
-    ASSUMPTION: satellite passes are infrequent enough that duplicate timestamps won't be created
-    :param df: from collect_data() and check_df_cols()
+    ASSUMPTION: Satellite passes are infrequent enough that duplicate timestamps won't be created
+    :param df: From collect_data() and check_df_cols()
+    :param datetimeindex_name: Name of the datetime index column in the cleaned data csv file
     :return: pandas DataFrame with DatetimeIndex of rounded timestamps
     """
     # check input values
@@ -65,9 +64,9 @@ def round_nearest_hour_index(df: pd.DataFrame) -> pd.DataFrame:
 
     df_copy = df.copy()
 
-    df_copy[c.DATETIMEINDEX_NAME] = pd.to_datetime(df_copy["time"], utc=True)
-    df_copy[c.DATETIMEINDEX_NAME] = df_copy[c.DATETIMEINDEX_NAME].dt.round("h")
-    df_copy = df_copy.set_index(c.DATETIMEINDEX_NAME)
+    df_copy[datetimeindex_name] = pd.to_datetime(df_copy["time"], utc=True)
+    df_copy[datetimeindex_name] = df_copy[datetimeindex_name].dt.round("h")
+    df_copy = df_copy.set_index(datetimeindex_name)
     df_copy = df_copy.drop(columns=["time"])
     df_copy = df_copy.sort_index()
 

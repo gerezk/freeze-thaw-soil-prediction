@@ -33,3 +33,6 @@ def check_df_cols(df: pd.DataFrame, system: str) -> None:
 
     if not required_cols.issubset(df.columns):
         raise KeyError(f'{system} df must contain all of these columns: {str(required_cols)}')
+
+# def validate_start_end():
+#     assert NotImplemented

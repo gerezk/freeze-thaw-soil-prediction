@@ -6,13 +6,12 @@ import plotly.express as px
 from plotly.graph_objects import Figure
 from pydantic import validate_call, ConfigDict
 
-from freeze_thaw.validation import validate_time_index
-from freeze_thaw.config import config as c
-from freeze_thaw.config import StationName
+from freeze_thaw._validation import validate_time_index
+from freeze_thaw.utils import find_repo_root
 
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
-def plot(df: pd.DataFrame, variable: str, station: StationName, system: str, form: str,
+def plot_var_vs_time(df: pd.DataFrame, col_name: str, form: str, draw_zero_line: bool = False,
          y_label: str | None=None, start: datetime | None=None, end: datetime | None=None) -> plt.Axes:
     """
     Create a line or scatter plot of variable vs the index.
@@ -20,10 +19,9 @@ def plot(df: pd.DataFrame, variable: str, station: StationName, system: str, for
     If end given but not start, the first timestamp in the df to end will be plotted.
     If start given but not end, the start to the last timestamp in the df will be plotted.
     :param df: from collect_data(), create_timestamp_col(), and convert_nan()
-    :param variable: full variable name
-    :param station: name of the ISMN station
-    :param system: name of the sensor system
+    :param col_name: name of column to plot on y-axis
     :param form: line or scatter, case-insensitive
+    :param draw_zero_line: whether to draw zero line
     :param y_label: y-label for plot
     :param start: naive datetime.datetime object (inclusive)
     :param end: naive datetime.datetime object (inclusive)
@@ -32,8 +30,8 @@ def plot(df: pd.DataFrame, variable: str, station: StationName, system: str, for
     # check input values
     if df.empty:
         raise ValueError('df must not be empty')
-    if variable not in df.columns:
-        raise KeyError(f'df missing required column "{variable}".')
+    if col_name not in df.columns:
+        raise KeyError(f'df missing required column "{col_name}".')
     if form.lower() not in ['line', 'scatter']:
         raise ValueError('form must be "line" or "scatter" (case-insensitive).')
     # check input df index
@@ -72,37 +70,47 @@ def plot(df: pd.DataFrame, variable: str, station: StationName, system: str, for
     # create plot objects
     fig, ax = plt.subplots()
     if form.lower() == 'line':
-        ax.plot(df_slice.index, df_slice[variable])
+        ax.plot(df_slice.index, df_slice[col_name])
     elif form.lower() == 'scatter':
-        ax.scatter(df_slice.index, df_slice[variable])
+        ax.scatter(df_slice.index, df_slice[col_name])
     else:
         raise ValueError(f'form somehow changed to invalid value from when it was checked to now')
-    ax.set_title(f'{station}, {system}')
+  #  ax.set_title(f'{station}, {system}')
     if y_label is not None:
         ax.set_ylabel(y_label)
     else:
-        ax.set_ylabel(variable)
+        ax.set_ylabel(col_name)
     ax.set_xlabel('Date')
     ax.tick_params(axis='x', rotation=30)
 
-    if variable == c.ISMN_LONG_VAR_NAME:
+    if draw_zero_line:
         ax.axhline(y=0, color='k')
 
     return ax
 
 @validate_call
-def map_stations(path: Path, save_image: bool = False) -> Figure:
+def map_stations(site_survey_path: Path, output_dir: Path, save_image: bool = False) -> Figure:
     """
     Create map displaying locations of ISMN stations.
-    :param path: path to ISMN_site_survey.csv
+    :param site_survey_path: relative path from project root to ISMN_site_survey.csv
+    :param output_dir: relative path from project root to output folder
     :param save_image: whether to save plot in ../images; takes a few seconds if True
     :return: plotly.graph_objects.Figure
     """
-    # check input values
-    if not path.is_file():
-        raise FileNotFoundError(f'File not found at {path}')
+    repo_root = find_repo_root()
+    site_survey_path = repo_root / site_survey_path
+    output_dir = repo_root / Path(output_dir)
 
-    df = pd.read_csv(path)
+    # check input values
+    if not site_survey_path.is_file():
+        raise FileNotFoundError(f'File not found at {site_survey_path}')
+    if not output_dir.is_dir():
+        try:
+            output_dir.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            raise OSError(f'Directory not found at {site_survey_path} and could not be created.')
+
+    df = pd.read_csv(site_survey_path)
 
     fig = px.scatter_geo(
         df,
@@ -125,8 +133,6 @@ def map_stations(path: Path, save_image: bool = False) -> Figure:
         showcountries=True
     )
     if save_image:
-        images_dir = c.REPO_ROOT / "images"
-        images_dir.mkdir(parents=True, exist_ok=True)
-        fig.write_image(images_dir / "map_ISMN_stations.png")
+        fig.write_image(output_dir / "map_ISMN_stations.png")
 
     return fig

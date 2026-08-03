@@ -8,8 +8,7 @@ from pathlib import Path
 from numbers import Real
 from pydantic import validate_call, ConfigDict
 
-from freeze_thaw.validation import validate_time_index
-from freeze_thaw.config import config as c
+from freeze_thaw._validation import validate_time_index
 
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
@@ -74,11 +73,12 @@ def collect_data(path: Path, max_depth: Real, short_variable: str, long_variable
     return combined_df
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
-def create_timestamp_col(df: pd.DataFrame) -> pd.DataFrame:
+def create_timestamp_col(df: pd.DataFrame, datetimeindex_name: str) -> pd.DataFrame:
     """
     Create a UTC timestamp column.
     ISMN has the date and time in separate columns.
     :param df: from collect_data()
+    :param datetimeindex_name: Used to name the datetime index column for the csv file
     :return: df with timestamp (datetime64[us, UTC]) index
     """
     # check input values
@@ -89,10 +89,10 @@ def create_timestamp_col(df: pd.DataFrame) -> pd.DataFrame:
 
     df_copy = df.copy()
 
-    df_copy[c.DATETIMEINDEX_NAME] = df_copy['UTC_date'].astype(str) + ' ' + df_copy['UTC_time'].astype(str)
-    df_copy[c.DATETIMEINDEX_NAME] = pd.to_datetime(df_copy[c.DATETIMEINDEX_NAME], format='%Y/%m/%d %H:%M')
+    df_copy[datetimeindex_name] = df_copy['UTC_date'].astype(str) + ' ' + df_copy['UTC_time'].astype(str)
+    df_copy[datetimeindex_name] = pd.to_datetime(df_copy[datetimeindex_name], format='%Y/%m/%d %H:%M')
     df_copy = df_copy.drop(columns=['UTC_date', 'UTC_time'])
-    df_copy.set_index(c.DATETIMEINDEX_NAME, inplace=True)
+    df_copy.set_index(datetimeindex_name, inplace=True)
     df_copy.index = df_copy.index.tz_localize('UTC')
     df_copy = df_copy.sort_index()
 

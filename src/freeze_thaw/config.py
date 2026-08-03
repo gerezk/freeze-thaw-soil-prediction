@@ -13,18 +13,17 @@ Constants:
     CLASS_BOUNDARY      Symmetric temperature boundary (°C) around the freezing point
     SITE_SURVEY_PATH    Path to the ISMN site survey CSV, relative to repo root
     CLEANED_DATA_PATH   Path to the cleaned data directory, relative to repo root
+    MODEL_PATH          Path to the trained models directory, relative to repo root
     ASCAT_KEY_COLS      Columns to extract from raw ASCAT data
     ERA5_KEY_COLS       Columns to extract from raw ERA5 data
     ISMN_KEY_COLS       Columns to extract from raw ISMN data
     CLASSES             Freeze-thaw class labels, must be length 3 in descending temperature order
-    DATETIMEINDEX_NAME  Name of the datetime index column in the cleaned data
+    DATETIMEINDEX_NAME  Name of the datetime index column in the cleaned data csv files
     ISMN_LONG_VAR_NAME  Long variable name for ISMN soil temperature
 
 StationName:
     Enum members can be added or removed to match the ISMN site survey CSV.
     The enum value must exactly match the ISMN_Station_Name column in the CSV.
-
-Note: REPO_ROOT is derived automatically and should not be edited.
 """
 
 from datetime import datetime
@@ -34,7 +33,7 @@ from enum import Enum
 import pandas as pd
 
 from freeze_thaw.utils import find_repo_root
-
+REPO_ROOT = find_repo_root()
 
 class DateRange(BaseModel):
     start: datetime
@@ -59,9 +58,9 @@ class Config(BaseModel):
     # symmetric boundary across the freezing point in Celsius
     CLASS_BOUNDARY: float = 1.0
 
-    REPO_ROOT: Path = find_repo_root()
     SITE_SURVEY_PATH: Path = REPO_ROOT / "ISMN_site_survey.csv"
     CLEANED_DATA_PATH: Path = REPO_ROOT / "data" / "cleaned"
+    MODEL_PATH: Path = REPO_ROOT / "models"
 
     ASCAT_KEY_COLS: list[str] = Field(default_factory=lambda: [
         'backscatter40', 'swath_indicator', 'as_des_pass', 'sat_id'
@@ -89,6 +88,8 @@ class Config(BaseModel):
             raise FileExistsError(f'{self.CLEANED_DATA_PATH} must point to a directory.')
         if not self.CLEANED_DATA_PATH.exists():
             self.CLEANED_DATA_PATH.mkdir(parents=True, exist_ok=True)
+        if not self.MODEL_PATH.exists():
+            self.MODEL_PATH.mkdir(parents=True, exist_ok=True)
         return self
 
     @model_validator(mode="after")
