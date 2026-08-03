@@ -6,7 +6,7 @@ import pandas as pd
 from pathlib import Path
 from pydantic import validate_call, ConfigDict
 
-from freeze_thaw._validation import validate_time_index
+from freeze_thaw.validation import validate_time_index
 
 
 @validate_call

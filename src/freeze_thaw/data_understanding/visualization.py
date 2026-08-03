@@ -6,7 +6,7 @@ import plotly.express as px
 from plotly.graph_objects import Figure
 from pydantic import validate_call, ConfigDict
 
-from freeze_thaw._validation import validate_time_index
+from freeze_thaw.validation import validate_time_index
 from freeze_thaw.utils import find_repo_root
 
 
@@ -75,7 +75,6 @@ def plot_var_vs_time(df: pd.DataFrame, col_name: str, form: str, draw_zero_line:
         ax.scatter(df_slice.index, df_slice[col_name])
     else:
         raise ValueError(f'form somehow changed to invalid value from when it was checked to now')
-  #  ax.set_title(f'{station}, {system}')
     if y_label is not None:
         ax.set_ylabel(y_label)
     else:
