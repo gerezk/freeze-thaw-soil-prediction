@@ -17,7 +17,7 @@ Constants:
     ASCAT_KEY_COLS      Columns to extract from raw ASCAT data
     ERA5_KEY_COLS       Columns to extract from raw ERA5 data
     ISMN_KEY_COLS       Columns to extract from raw ISMN data
-    CLASSES             Freeze-thaw class labels, must be length 3 in descending temperature order
+    CLASSES             Freeze-thaw class labels, must be length 3 in ascending temperature order
     DATETIMEINDEX_NAME  Name of the datetime index column in the cleaned data csv files
     ISMN_LONG_VAR_NAME  Long variable name for ISMN soil temperature
 

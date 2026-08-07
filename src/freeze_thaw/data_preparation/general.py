@@ -5,38 +5,42 @@ from pathlib import Path
 import logging
 logger = logging.getLogger(__name__)
 
-from freeze_thaw.validation import validate_time_index
+from freeze_thaw.validation import validate_time_index, validate_date_range
 from freeze_thaw._internal_functions import classify_value
 from freeze_thaw.config import StationName
 
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
-def filter_df(df: pd.DataFrame, start: datetime, end: datetime) -> pd.DataFrame:
+def filter_df(df: pd.DataFrame, start: datetime | None=None, end: datetime | None=None) -> pd.DataFrame:
     """
     Filters dataframe based on date range.
-    :param df: has aware DatetimeIndex
-    :param start: start date (inclusive)
-    :param end: end date (exclusive)
+    :param df: has timezone-aware DatetimeIndex
+    :param start: naive datetime.datetime object (inclusive)
+    :param end: naive datetime.datetime object (inclusive)
     :return: filtered dataframe
     """
     # check input data types and values
     if df.empty:
         raise ValueError('df must not be empty')
     validate_time_index(df)
-    if start >= end:
-        raise ValueError('start must be before end')
+    validate_date_range(df, start, end)
 
     df_copy = df.copy()
 
-    start = start.replace(tzinfo=df_copy.index.tz)
-    end = end.replace(tzinfo=df_copy.index.tz)
+    if start is not None:
+        start = start.replace(tzinfo=df_copy.index.tz)
+    if end is not None:
+        end = end.replace(tzinfo=df_copy.index.tz)
 
-    if start < min(df_copy.index):
-        logging.info(f'Warning: {start} is before the earliest timestamp in df: {min(df_copy.index)}.')
-    if end > max(df_copy.index):
-        logging.info(f'Warning: {end} is after the latest timestamp in df: {max(df_copy.index)}.')
-    df_copy = df_copy[df_copy.index >= start]
-    df_copy = df_copy[df_copy.index < end]
+    # set date range
+    if start is None and end is not None:
+        df_copy = df_copy.loc[df.index <= end]
+    elif start is not None and end is None:
+        df_copy = df_copy.loc[df.index >= start]
+    elif start is not None and end is not None:
+        df_copy = df_copy.loc[start:end]
+    # else include all records
+    df_copy = df_copy.sort_index()
 
     return df_copy
 

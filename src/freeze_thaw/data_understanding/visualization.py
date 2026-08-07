@@ -1,17 +1,21 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.axes import Axes
+import seaborn as sns
 from datetime import datetime
 from pathlib import Path
 import plotly.express as px
 from plotly.graph_objects import Figure
 from pydantic import validate_call, ConfigDict
 
-from freeze_thaw.validation import validate_time_index
+from freeze_thaw.validation import validate_time_index, validate_date_range
+from freeze_thaw.data_preparation.general import filter_df
 from freeze_thaw.utils import find_repo_root
+from freeze_thaw.config import StationName
 
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
-def plot_var_vs_time(df: pd.DataFrame, col_name: str, form: str, draw_zero_line: bool = False,
+def plot_var_vs_time(df: pd.DataFrame, variable: str, form: str, draw_zero_line: bool = False,
          y_label: str | None=None, start: datetime | None=None, end: datetime | None=None) -> plt.Axes:
     """
     Create a line or scatter plot of variable vs the index.
@@ -19,7 +23,7 @@ def plot_var_vs_time(df: pd.DataFrame, col_name: str, form: str, draw_zero_line:
     If end given but not start, the first timestamp in the df to end will be plotted.
     If start given but not end, the start to the last timestamp in the df will be plotted.
     :param df: from collect_data(), create_timestamp_col(), and convert_nan()
-    :param col_name: name of column to plot on y-axis
+    :param variable: name of column to plot on y-axis
     :param form: line or scatter, case-insensitive
     :param draw_zero_line: whether to draw zero line
     :param y_label: y-label for plot
@@ -30,55 +34,30 @@ def plot_var_vs_time(df: pd.DataFrame, col_name: str, form: str, draw_zero_line:
     # check input values
     if df.empty:
         raise ValueError('df must not be empty')
-    if col_name not in df.columns:
-        raise KeyError(f'df missing required column "{col_name}".')
+    if variable not in df.columns:
+        raise KeyError(f'df missing required column "{variable}".')
     if form.lower() not in ['line', 'scatter']:
         raise ValueError('form must be "line" or "scatter" (case-insensitive).')
-    # check input df index
+
     validate_time_index(df)
+    validate_date_range(df, start, end)
 
-    # check start and end independently
-    if start is not None:
-        start = start.replace(tzinfo=df.index.tz)
-        if start < min(df.index):
-            raise ValueError(f'{start} must not be before the first timestamp in df: {min(df.index)}.')
-        if start >= max(df.index):
-            raise ValueError(f'{start} must not be on or after the last timestamp in df: {max(df.index)}.')
-    if end is not None:
-        end = end.replace(tzinfo=df.index.tz)
-        if end > max(df.index):
-            raise ValueError(f'{end} must not be after the last timestamp in df: {max(df.index)}.')
-        if end <= min(df.index):
-            raise ValueError(f'{end} must not be before or on the first timestamp in df: {min(df.index)}.')
+    df_copy = df.copy()
 
-    # set date range for plot
-    if start is None and end is not None:
-        df_slice = df.loc[df.index <= end]
-    elif start is not None and end is None:
-        df_slice = df.loc[df.index >= start]
-    elif start is not None and end is not None:
-        # check relation between start and end
-        if start == end:
-            raise ValueError(f'start and end cannot be the same.')
-        if start >= end:
-            raise ValueError(f'start must be before end.')
-        df_slice = df.loc[start:end]
-    else: # default to plotting all records
-        df_slice = df
-    df_slice = df_slice.sort_index()
+    df_copy = filter_df(df_copy, start=start, end=end)
 
     # create plot objects
     fig, ax = plt.subplots()
     if form.lower() == 'line':
-        ax.plot(df_slice.index, df_slice[col_name])
+        ax.plot(df_copy.index, df_copy[variable])
     elif form.lower() == 'scatter':
-        ax.scatter(df_slice.index, df_slice[col_name])
+        ax.scatter(df_copy.index, df_copy[variable])
     else:
         raise ValueError(f'form somehow changed to invalid value from when it was checked to now')
     if y_label is not None:
         ax.set_ylabel(y_label)
     else:
-        ax.set_ylabel(col_name)
+        ax.set_ylabel(variable)
     ax.set_xlabel('Date')
     ax.tick_params(axis='x', rotation=30)
 
@@ -86,6 +65,84 @@ def plot_var_vs_time(df: pd.DataFrame, col_name: str, form: str, draw_zero_line:
         ax.axhline(y=0, color='k')
 
     return ax
+
+@validate_call(config=ConfigDict(arbitrary_types_allowed=True))
+def plot_with_labels(df: pd.DataFrame, variable: str, classes: list[str], start: datetime, end: datetime) -> Axes:
+    """
+    Plots scatterplot of variable vs time with datapoints colored by class label according to ISMN data.
+    The y-label is left as empty.
+    :param df: pd.DataFrame containing a timezone-aware DatetimeIndex and records classified base on ISMN data
+    :param variable: name of column to plot on y-axis
+    :param classes: freeze-thaw class labels, must be length 3 in ascending temperature order
+    :param start: naive datetime.datetime object (inclusive)
+    :param end: naive datetime.datetime object (inclusive)
+    :return: matplotlib Axes object
+    """
+    if not {'class', variable}.issubset(df.columns):
+        raise ValueError(f"df must contain 'class' and '{variable}' columns")
+    validate_time_index(df)
+
+    df_copy = df.copy()
+    df_copy = filter_df(df_copy, start, end)
+
+    palette = {
+        classes[0]: "tab:blue",
+        classes[1]: "tab:brown",
+        classes[2]: "tab:green",
+    }
+
+    ax = sns.scatterplot(data=df_copy, x=df_copy.index.name, y='stl1',
+                         hue='class', palette=palette
+                         )
+    ax.set_xlabel("Timestamp")
+
+    return ax
+
+
+def plot_temp_differences(df: pd.DataFrame, name: StationName, start: datetime, end: datetime) -> tuple[Axes, Axes]:
+    """
+    Creates two plots based on the ISMN and ERA5 data.
+    The first is a line plot of both the measured soil temperatures according to both methods.
+    The second plot is a line plot that shows the difference between the ISMN and ERA5 soil temperatures.
+    :param df: cleaned and combined data df
+    :param name: station name
+    :param start: naive datetime.datetime object (inclusive)
+    :param end: naive datetime.datetime object (inclusive)
+    :return: two matplotlib Axes objects
+    """
+    if not {'soil_temp', 'stl1'}.issubset(df.columns):
+        raise ValueError("df must contain 'soil_temp' and 'stl1' columns")
+    validate_time_index(df)
+
+    df_copy = df.copy()
+    df_copy = filter_df(df_copy, start, end)
+
+    diff = df_copy["soil_temp"] - df_copy["stl1"]
+
+    fig, (ax1, ax2) = plt.subplots(
+        2, 1,
+        figsize=(12, 7),
+        sharex=True,
+        gridspec_kw={"height_ratios": [3, 1]}
+    )
+
+    # Top panel
+    ax1.plot(df_copy.index, df_copy["stl1"], label="ERA5")
+    ax1.plot(df_copy.index, df_copy["soil_temp"], label="ISMN")
+    ax1.legend()
+    ax1.set_title(name)
+    ax1.set_ylabel("Temperature (\u00B0C)")
+    ax1.grid(alpha=0.3)
+
+    # Bottom panel
+    ax2.plot(df_copy.index, diff, color="tab:red")
+    ax2.axhline(0, color="black", ls="--", lw=1)
+    ax2.set_ylabel("Difference (ISMN-ERA5)")
+    ax2.set_xlabel("Timestamp")
+    ax2.grid(alpha=0.3)
+
+    return ax1, ax2
+
 
 @validate_call
 def map_stations(site_survey_path: Path, output_dir: Path, save_image: bool = False) -> Figure:
