@@ -104,8 +104,8 @@ def align_timestamps_then_label(dfs: list[pd.DataFrame],
     :param ismn_var_name: Variable name for ISMN soil temperature
     :param ascat_key_cols: List of str that mark columns representing ASCAT data
     :param era5_key_cols: List of str that mark columns representing ERA5 data
-    :return: ascat_df and era5_df, with each record labelled according to ISMN soil temperature. The ERA5
-    df contains the ISMN soil temperatures.
+    :return: ascat_df and era5_df, with each record labelled according to ISMN soil temperature. The two dfs also
+    contain the ISMN soil temperature.
     """
     if len(dfs) != 3:
         raise ValueError("dfs must be a list of length three, representing ISMN, ASCAT, and ERA5 data.")
@@ -120,7 +120,7 @@ def align_timestamps_then_label(dfs: list[pd.DataFrame],
     # split into two dfs
     # avoids SettingWithCopyWarning
     ascat_df = combined_df[
-        ascat_key_cols + ["class"]
+        ascat_key_cols + [ismn_var_name, "class"]
         ].copy()
     era5_df = combined_df[
         era5_key_cols + [ismn_var_name, "class"]
