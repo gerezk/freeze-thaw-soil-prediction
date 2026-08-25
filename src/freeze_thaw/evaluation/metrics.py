@@ -27,6 +27,7 @@ def calculate_f1_scores(y_true: Union[pd.Series, np.ndarray], y_pred: Union[pd.S
                         classes: list[object]) -> tuple[float, float]:
     """
     Calculate macro and transition state f1 scores.
+    All classes must be present in y_true or y_pred.
     :param y_true: Ground truth (correct) target values
     :param y_pred: Estimated targets as returned by a classifier
     :param classes: List of classes

@@ -1,9 +1,41 @@
 import pandas as pd
 import numpy as np
 from typing import List
+from pydantic import validate_call, ConfigDict
 
 
-def create_lagged_features(df: pd.DataFrame, lags: List[int]) -> pd.DataFrame:
+@validate_call(config=ConfigDict(arbitrary_types_allowed=True))
+def prepare_df(df: pd.DataFrame, label_encoding: dict[str, int], lagged_features: bool,
+               lags: list[int] | None = None) -> pd.DataFrame:
+    """
+    Prepare df for ingestion by an ML model. Class labels will be converted to integers,
+    which is required for model input. Lagged features are first created, then unlabelled rows are dropped.
+    :param df: pd.DataFrame
+    :param label_encoding: dict mapping c.CLASSES to int
+    :param lagged_features: whether to use lagged features
+    :param lags: list of lags to create
+    :return: processed df
+    """
+    if lagged_features and lags is None:
+        raise ValueError("The variable 'lags' should be a list of ints with a length of at least 1 "
+                         "when creating lagged features.")
+
+    df_copy = df.copy()
+
+    if lagged_features:
+        df_copy = _create_lagged_features(df_copy, lags)
+    df_copy = _cyclical_encoding(df_copy)
+
+    null_count = df_copy[df_copy["class"].isnull()].shape[0]
+    print(f"Dropping {null_count} rows with no class label.")
+    df_copy = df_copy.dropna(subset=["class"])
+
+    df_copy['class'] = df_copy['class'].map(label_encoding)
+
+    return df_copy
+
+
+def _create_lagged_features(df: pd.DataFrame, lags: List[int]) -> pd.DataFrame:
     """
     Creates lagged features derived from backscatter40.
     :param df: pd.DataFrame
@@ -33,7 +65,7 @@ def create_lagged_features(df: pd.DataFrame, lags: List[int]) -> pd.DataFrame:
 
     return df_copy
 
-def cyclical_encoding(df: pd.DataFrame) -> pd.DataFrame:
+def _cyclical_encoding(df: pd.DataFrame) -> pd.DataFrame:
     """
     Create two columns representing a cyclical encoding for day of the year.
     :param df: pd.DataFrame
