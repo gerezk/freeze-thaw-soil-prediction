@@ -19,6 +19,8 @@ def prepare_df(df: pd.DataFrame, label_encoding: dict[str, int], lagged_features
     if lagged_features and lags is None:
         raise ValueError("The variable 'lags' should be a list of ints with a length of at least 1 "
                          "when creating lagged features.")
+    if not df.index.inferred_type == "datetime64":
+        raise ValueError("df index inferred_type must be datetime64")
 
     df_copy = df.copy()
 
@@ -44,8 +46,6 @@ def _create_lagged_features(df: pd.DataFrame, lags: List[int]) -> pd.DataFrame:
     """
     if not "backscatter40" in df.columns:
         raise ValueError("backscatter40 is not in the dataframe")
-    if not df.index.inferred_type == "datetime64":
-        raise ValueError("df index inferred_type must be datetime64")
     if not all(type(x) is int and x > 0 for x in lags):
         raise ValueError("'lags' must contain only positive integers.")
 
@@ -65,15 +65,13 @@ def _create_lagged_features(df: pd.DataFrame, lags: List[int]) -> pd.DataFrame:
 
     return df_copy
 
+
 def _cyclical_encoding(df: pd.DataFrame) -> pd.DataFrame:
     """
     Create two columns representing a cyclical encoding for day of the year.
     :param df: pd.DataFrame
     :return: df with cyclical encoding for day of the year
     """
-    if not df.index.inferred_type == "datetime64":
-        raise ValueError("df index inferred_type must be datetime64")
-
     df_copy = df.copy()
 
     doy = df_copy.index.dayofyear
