@@ -21,6 +21,9 @@ def prepare_df(df: pd.DataFrame, label_encoding: dict[str, int], lagged_features
                          "when creating lagged features.")
     if not df.index.inferred_type == "datetime64":
         raise ValueError("df index inferred_type must be datetime64")
+    if df["class"].dtype == "int64":
+        print("prepare_df() has already been applied to this df. Executing early return.")
+        return df
 
     df_copy = df.copy()
 
@@ -29,7 +32,7 @@ def prepare_df(df: pd.DataFrame, label_encoding: dict[str, int], lagged_features
     df_copy = _cyclical_encoding(df_copy)
 
     null_count = df_copy[df_copy["class"].isnull()].shape[0]
-    print(f"Dropping {null_count} rows with no class label.")
+    print(f"    Dropping {null_count} rows with no class label.")
     df_copy = df_copy.dropna(subset=["class"])
 
     df_copy['class'] = df_copy['class'].map(label_encoding)
