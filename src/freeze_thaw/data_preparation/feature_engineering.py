@@ -31,8 +31,8 @@ def prepare_df(df: pd.DataFrame, label_encoding: dict[str, int], lagged_features
         df_copy = _create_lagged_features(df_copy, lags)
     df_copy = _cyclical_encoding(df_copy)
 
-    null_count = df_copy[df_copy["class"].isnull()].shape[0]
-    print(f"    Dropping {null_count} rows with no class label.")
+    # null_count = df_copy[df_copy["class"].isnull()].shape[0]
+    # print(f"    Dropping {null_count} rows with no class label.")
     df_copy = df_copy.dropna(subset=["class"])
 
     df_copy['class'] = df_copy['class'].map(label_encoding)

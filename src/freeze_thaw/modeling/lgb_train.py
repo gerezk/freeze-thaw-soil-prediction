@@ -4,9 +4,12 @@ import lightgbm as lgb
 from sklearn.model_selection import TimeSeriesSplit
 from dataclasses import dataclass
 from pydantic import validate_call, ConfigDict
+from pathlib import Path
+from typing import Union
 
 from freeze_thaw.evaluation.metrics import calculate_f1_scores
-
+from freeze_thaw.data_preparation.splitting import collect_process_split
+from freeze_thaw.config import StationName, config as c
 
 @dataclass(frozen=True)
 class TrainingResult:
@@ -19,21 +22,68 @@ class TrainingResult:
     oof_probabilities: np.ndarray
 
 
-def full_train_pipeline(stations: list[str],
+@validate_call(config=ConfigDict(arbitrary_types_allowed=True))
+def full_train_pipeline(train_size: float,
                         n_splits: int,
                         label_encoding: dict[str, int],
-                        params: dict[str, str] | None = None) -> list[TrainingResult]:
+                        lagged_features: bool = False,
+                        lags: list[int] | None = None,
+                        params: dict[str, str] | None = None,
+                        stations: Union[type[StationName], list[str]] = StationName,
+                        cleaned_data_path: Path = c.CLEANED_DATA_PATH,
+                        model_path: Path = c.MODEL_PATH,
+                        datetimeindex_name: str = c.DATETIMEINDEX_NAME,
+                        ismn_long_var_name: str = c.ISMN_LONG_VAR_NAME,
+                        ascat_key_cols: list[str] | None = None,
+                        era5_key_cols: list[str] | None = None) -> None:
     """
     Orchestrator to train and save lightgbm models for all stations with the cleaned, labelled ASCAT data being the input.
-    :param stations: list of ISMN stations
-    :param n_splits:
-    :param label_encoding:
-    :param params:
-    :return:
+    :param train_size: decimal fraction size of training data
+    :param n_splits: number of folds for cross-validation
+    :param label_encoding: mapping of str classes to int labels
+    :param lagged_features: create lagged features or not
+    :param lags: list of lags e.g. [1, 3] will create features for the backscatter from one and three datapoints prior
+    :param params: parameters to pass to lightgbm.train
+    :param stations: StationName class from config.py
+    :param cleaned_data_path: absolute path to the cleaned data directory
+    :param model_path: absolute path to directory to save the model
+    :param datetimeindex_name: name of the datetime index column in the cleaned data csv files
+    :param ismn_long_var_name: long variable name for ISMN soil temperature
+    :param ascat_key_cols: list of ASCAT key column names
+    :param era5_key_cols: list of ERA5 key column names
+    :return: None
     """
+    if ascat_key_cols is None:
+        ascat_key_cols = c.ASCAT_KEY_COLS
+    if era5_key_cols is None:
+        era5_key_cols = c.ERA5_KEY_COLS
 
-    # loops over prepare_df and train_model for all stations
+    for station in stations:
+        print(f"Training and saving lightgbm model for {station}")
+        file_path = model_path / f"{station}_model.txt"
+        if file_path.exists():
+            print(f"{station}_model.txt already exists. Do you want to overwrite it? (y/n)")
+            overwrite = input().lower()
+            if overwrite == "y":
+                file_path.unlink()
+            else:
+                print("Skipping")
+                continue
 
+        train, test = collect_process_split(station,
+                                            cleaned_data_path,
+                                            datetimeindex_name,
+                                            ismn_long_var_name,
+                                            ascat_key_cols,
+                                            era5_key_cols,
+                                            train_size,
+                                            label_encoding,
+                                            lagged_features,
+                                            lags)
+
+        train_result = train_model(train, n_splits, label_encoding, params)
+
+        train_result.model.save_model(model_path / f"{station}_model.txt")
 
 # this function could be broken up so that evaluation is done separately
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
@@ -60,7 +110,8 @@ def train_model(df: pd.DataFrame,
             'objective': 'multiclass',
             'num_class': len(label_encoding),
             'metric': 'multi_logloss',
-            'verbose': 0
+            'seed': 42,
+            'verbose': -1
         }
 
     macro_f1_scores = []
@@ -127,3 +178,15 @@ def train_model(df: pd.DataFrame,
         oof_predictions=oof_predictions,
         oof_probabilities=oof_probabilities,
     )
+
+# run full_train_pipeline with no lagged features
+if __name__ == '__main__':
+    label_map = {
+        c.CLASSES[0]: 0,
+        c.CLASSES[1]: 1,
+        c.CLASSES[2]: 2,
+    }
+
+    full_train_pipeline(train_size=0.8,
+                        n_splits=5,
+                        label_encoding=label_map)
