@@ -5,11 +5,12 @@ from sklearn.model_selection import TimeSeriesSplit
 from dataclasses import dataclass
 from pydantic import validate_call, ConfigDict
 from pathlib import Path
-from typing import Union
+from typing import Iterable
 
 from freeze_thaw.evaluation.metrics import calculate_f1_scores
 from freeze_thaw.data_preparation.splitting import collect_process_split
 from freeze_thaw.config import StationName, config as c
+
 
 @dataclass(frozen=True)
 class TrainingResult:
@@ -23,19 +24,21 @@ class TrainingResult:
 
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
-def full_train_pipeline(train_size: float,
-                        n_splits: int,
-                        label_encoding: dict[str, int],
-                        lagged_features: bool = False,
-                        lags: list[int] | None = None,
-                        params: dict[str, str] | None = None,
-                        stations: Union[type[StationName], list[str]] = StationName,
-                        cleaned_data_path: Path = c.CLEANED_DATA_PATH,
-                        model_path: Path = c.MODEL_PATH,
-                        datetimeindex_name: str = c.DATETIMEINDEX_NAME,
-                        ismn_long_var_name: str = c.ISMN_LONG_VAR_NAME,
-                        ascat_key_cols: list[str] | None = None,
-                        era5_key_cols: list[str] | None = None) -> None:
+def train_and_save_station_models(train_size: float,
+                                  n_splits: int,
+                                  label_encoding: dict[str, int],
+                                  *,
+                                  lagged_features: bool = False,
+                                  lags: list[int] | None = None,
+                                  params: dict[str, object] | None = None,
+                                  stations: Iterable[StationName] = StationName,
+                                  cleaned_data_path: Path | None = None,
+                                  model_path: Path | None = None,
+                                  datetimeindex_name: str | None = None,
+                                  ismn_long_var_name: str | None = None,
+                                  ascat_key_cols: list[str] | None = None,
+                                  era5_key_cols: list[str] | None = None,
+                                  overwrite: bool = False) -> None:
     """
     Orchestrator to train and save lightgbm models for all stations with the cleaned, labelled ASCAT data being the input.
     :param train_size: decimal fraction size of training data
@@ -51,26 +54,24 @@ def full_train_pipeline(train_size: float,
     :param ismn_long_var_name: long variable name for ISMN soil temperature
     :param ascat_key_cols: list of ASCAT key column names
     :param era5_key_cols: list of ERA5 key column names
+    :param overwrite: overwrite existing model files
     :return: None
     """
-    if ascat_key_cols is None:
-        ascat_key_cols = c.ASCAT_KEY_COLS
-    if era5_key_cols is None:
-        era5_key_cols = c.ERA5_KEY_COLS
+    cleaned_data_path = cleaned_data_path or c.CLEANED_DATA_PATH
+    model_path = model_path or c.MODEL_PATH
+    datetimeindex_name = datetimeindex_name or c.DATETIMEINDEX_NAME
+    ismn_long_var_name = ismn_long_var_name or c.ISMN_LONG_VAR_NAME
+    ascat_key_cols = ascat_key_cols or c.ASCAT_KEY_COLS
+    era5_key_cols = era5_key_cols or c.ERA5_KEY_COLS
 
     for station in stations:
-        print(f"Training and saving lightgbm model for {station}")
+        print(f"Training and saving LightGBM model for {station}")
         file_path = model_path / f"{station}_model.txt"
-        if file_path.exists():
-            print(f"{station}_model.txt already exists. Do you want to overwrite it? (y/n)")
-            overwrite = input().lower()
-            if overwrite == "y":
-                file_path.unlink()
-            else:
-                print("Skipping")
-                continue
+        if file_path.exists() and not overwrite:
+            print(f"{file_path.name} already exists. Skipping.")
+            continue
 
-        train, test = collect_process_split(station,
+        train, _ = collect_process_split(station,
                                             cleaned_data_path,
                                             datetimeindex_name,
                                             ismn_long_var_name,
@@ -83,7 +84,7 @@ def full_train_pipeline(train_size: float,
 
         train_result = train_model(train, n_splits, label_encoding, params)
 
-        train_result.model.save_model(model_path / f"{station}_model.txt")
+        train_result.model.save_model(file_path)
 
 # this function could be broken up so that evaluation is done separately
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
@@ -187,6 +188,6 @@ if __name__ == '__main__':
         c.CLASSES[2]: 2,
     }
 
-    full_train_pipeline(train_size=0.8,
-                        n_splits=5,
-                        label_encoding=label_map)
+    train_and_save_station_models(train_size=0.8,
+                                  n_splits=5,
+                                  label_encoding=label_map)
