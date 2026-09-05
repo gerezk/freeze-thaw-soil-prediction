@@ -11,12 +11,13 @@ from freeze_thaw.evaluation.metrics import calculate_f1_scores
 class TestResult:
     macro_f1: float
     transition_f1: float
+    y_pred: np.ndarray
 
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
 def lgb_pred(df: pd.DataFrame,
-              model: lgb.Booster,
-              label_encoding: dict[str, int],) -> TestResult:
+             model: lgb.Booster,
+             label_encoding: dict[str, int],) -> TestResult:
     """
     Predict soil state on df given an lgbm model and output macro and transition state f1 scores.
     :param df: pd.DataFrame from prepare_df()
@@ -37,4 +38,6 @@ def lgb_pred(df: pd.DataFrame,
 
     macro_f1, transition_f1 = calculate_f1_scores(y, y_pred, list(label_encoding.values()))
 
-    return TestResult(macro_f1=macro_f1, transition_f1=transition_f1)
+    return TestResult(macro_f1=macro_f1,
+                      transition_f1=transition_f1,
+                      y_pred=y_pred)

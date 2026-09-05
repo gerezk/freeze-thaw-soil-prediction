@@ -16,7 +16,7 @@ def collect_data(data_path: Path, ismn_site_survey_path: Path, station_name: str
     The filename must follow this format: {gpi}_{LON:3f}_{LAT:3f}_{system}_time_series.csv
     :param data_path: path to directory containing ASCAT or ERA5 csv file
     :param ismn_site_survey_path: path to file containing ISMN station data
-    :param station_name: must match exactly the names in ISMNS_site_survey.csv
+    :param station_name: must match exactly the names in ISMN_site_survey.csv
     :param system: ASCAT or ERA5, case-insensitive
     :return: pandas DataFrame
     """
