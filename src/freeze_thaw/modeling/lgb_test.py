@@ -23,7 +23,7 @@ def lgb_pred(df: pd.DataFrame,
     :param df: pd.DataFrame from prepare_df()
     :param model: lightgbm.Booster
     :param label_encoding: mapping of c.CLASSES to int labels
-    :return: the macro and transition state f1 scores
+    :return: the macro and transition state f1 scores, along with the predictions
     """
     if "class" not in df.columns:
         raise ValueError("'df' must have 'class' column")
@@ -37,6 +37,10 @@ def lgb_pred(df: pd.DataFrame,
     y_pred = np.argmax(predictions, axis=1)
 
     macro_f1, transition_f1 = calculate_f1_scores(y, y_pred, list(label_encoding.values()))
+
+    # convert back to original class labels
+    inv_map = {v: k for k, v in label_encoding.items()}
+    y_pred = np.vectorize(inv_map.get)(y_pred)
 
     return TestResult(macro_f1=macro_f1,
                       transition_f1=transition_f1,

@@ -170,13 +170,17 @@ def train_model(df: pd.DataFrame,
         list(label_encoding.values())
     )
 
+    # convert predictions back to original labels
+    inv_map = {v: k for k, v in label_encoding.items()}
+    y_pred_oof = np.vectorize(inv_map.get)(y_pred_oof)
+
     return TrainingResult(
         model=model,
         fold_macro_f1_scores=macro_f1_scores,
         fold_transition_f1_scores=transition_f1_scores,
         oof_macro_f1=oof_macro_f1,
         oof_transition_f1=oof_transition_f1,
-        oof_predictions=oof_predictions,
+        oof_predictions=y_pred_oof,
         oof_probabilities=oof_probabilities,
     )
 

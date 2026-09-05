@@ -59,7 +59,7 @@ def get_test_set(station: StationName,
     """
     Given a StationName, collect the relevant cleaned data, join, label, perform feature engineering,
     then create and return the test split for both ASCAT and ERA5. The test split will always contain the most recent
-    data. Both sets are guaranteed to share the same indices.
+    data. Both sets are guaranteed to share the same indices. The ERA5 df will contain the original class labels.
     :param station: station name from StationName class in config.py
     :param train_size: decimal fraction size of training data. If 0.8 is entered,
     the most recent 20% of data will be returned i.e. the test split
