@@ -72,15 +72,15 @@ def train_and_save_station_models(train_size: float,
             continue
 
         train, _ = collect_process_split(station,
-                                            cleaned_data_path,
-                                            datetimeindex_name,
-                                            ismn_long_var_name,
-                                            ascat_key_cols,
-                                            era5_key_cols,
-                                            train_size,
-                                            label_encoding,
-                                            lagged_features,
-                                            lags)
+                                         cleaned_data_path,
+                                         datetimeindex_name,
+                                         ismn_long_var_name,
+                                         ascat_key_cols,
+                                         era5_key_cols,
+                                         train_size,
+                                         label_encoding,
+                                         lagged_features,
+                                         lags)
 
         train_result = train_model(train, n_splits, label_encoding, params)
 

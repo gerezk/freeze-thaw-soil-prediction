@@ -11,7 +11,7 @@ from pydantic import validate_call, ConfigDict
 from freeze_thaw.validation import validate_time_index, validate_date_range
 from freeze_thaw.data_preparation.general import filter_df
 from freeze_thaw.utils import find_repo_root
-from freeze_thaw.config import StationName
+from freeze_thaw.config import StationName, config as c
 
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
@@ -67,8 +67,11 @@ def plot_var_vs_time(df: pd.DataFrame, variable: str, form: str, draw_zero_line:
     return ax
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
-def plot_with_labels(df: pd.DataFrame, variable: str, classes: list[str],
-                     start: datetime, end: datetime, x: str | None=None) -> Axes:
+def plot_with_labels(df: pd.DataFrame, variable: str,
+                     classes: list[str] | None = None,
+                     start: datetime | None=None,
+                     end: datetime | None=None,
+                     x: str | None=None, hue: str = "class") -> Axes:
     """
     Plots scatterplot of variable vs time with datapoints colored by class label according to ISMN data.
     The x and y-labels are left as empty.
@@ -78,10 +81,11 @@ def plot_with_labels(df: pd.DataFrame, variable: str, classes: list[str],
     :param start: naive datetime.datetime object (inclusive)
     :param end: naive datetime.datetime object (inclusive)
     :param x: x-axis variable name. If none, use index.
+    :param hue: name of categorical column to be used to color data points
     :return: matplotlib Axes object
     """
-    if not {'class', variable}.issubset(df.columns):
-        raise ValueError(f"df must contain 'class' and '{variable}' columns")
+    if not {hue, variable}.issubset(df.columns):
+        raise ValueError(f"df must contain {hue} and '{variable}' columns")
     if x is None:
         validate_time_index(df)
         x = df.index.name
@@ -89,7 +93,13 @@ def plot_with_labels(df: pd.DataFrame, variable: str, classes: list[str],
         if x not in df.columns:
             raise ValueError(f'{x} must be in df columns')
 
+    # set defaults
+    classes = classes or c.CLASSES
+    start = start or df.index[0]
+    end = end or df.index[-1]
+
     df_copy = df.copy()
+
     df_copy = filter_df(df_copy, start, end)
 
     palette = {
@@ -99,8 +109,7 @@ def plot_with_labels(df: pd.DataFrame, variable: str, classes: list[str],
     }
 
     ax = sns.scatterplot(data=df_copy, x=x, y=variable,
-                         hue='class', palette=palette
-                         )
+                         hue=hue, palette=palette)
 
     return ax
 
