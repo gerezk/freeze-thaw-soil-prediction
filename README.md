@@ -31,15 +31,15 @@ A set of 10 ISMN stations was created, and the locations of the stations are dep
 
 ```angular2html
 ├── ISMN_site_survey.csv
+├── requirements.txt
 ├── notebooks
 │   ├── ASCAT_ERA5_data_cleaning.ipynb
 │   ├── assess_methodology.ipynb
 │   ├── ISMN_data_cleaning.ipynb
-│   └── model_development.ipynb
+│   ├── model_selection.ipynb
+│   └── model_vs_ERA5.ipynb
 └── src
     └── freeze_thaw
-        ├── _internal_functions.py
-        ├── config.py
         ├── data_preparation
         │   ├── ascat_era5.py
         │   ├── feature_engineering.py
@@ -51,9 +51,13 @@ A set of 10 ISMN stations was created, and the locations of the stations are dep
         ├── data_understanding
         │   └── visualization.py
         ├── evaluation
-        │   └── metrics.py
+        │   ├── metrics.py
+        │   └── statistics.py
         ├── modeling
-        │   └── train.py
+        │   ├── lgb_test.py
+        │   └── lgb_train.py
+        ├── _internal_functions.py
+        ├── config.py
         ├── utils.py
         └── validation.py
 ```
@@ -99,20 +103,7 @@ freeze/thaw transitions, providing a reproducible and observation-driven alterna
 
 ### Setup
 
-You must have Python 3.12 installed. 
-
-#### Conda
-
-If using conda, create environment from `environment.yml`:
-
-```
-conda env create -f environment.yml
-conda activate ft-soil
-```
-
-#### venv and pip
-
-Otherwise, use virtual environment and `requirements.txt`:
+It's recommended to use Python 3.12. Create virtual environment: 
 
 ```
 python3.12 -m venv .venv

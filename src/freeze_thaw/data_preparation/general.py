@@ -23,7 +23,6 @@ def filter_df(df: pd.DataFrame, start: datetime | None=None, end: datetime | Non
     if df.empty:
         raise ValueError('df must not be empty')
     validate_time_index(df)
-    validate_date_range(df, start, end)
 
     df_copy = df.copy()
 

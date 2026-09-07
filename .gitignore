@@ -1,5 +1,6 @@
-# Do not push data to repo
+# Do not push data or models to repo
 data/
+models/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
