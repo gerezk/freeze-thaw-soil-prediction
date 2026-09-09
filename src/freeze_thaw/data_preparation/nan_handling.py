@@ -138,8 +138,8 @@ def make_nan_indices(df: pd.DataFrame, long_variable: str, timestamps: pd.Dateti
 
     df_copy = df.copy()
 
-    # Vectorized operation to set specified records to NaN
-    mask = df.index.normalize().isin(timestamps)
+    # vectorized operation to set specified records to NaN
+    mask = df.index.isin(timestamps)
     df_copy.loc[mask, long_variable] = np.nan
 
 

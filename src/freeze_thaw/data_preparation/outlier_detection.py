@@ -10,7 +10,7 @@ def find_outlier_spikes(df: pd.DataFrame, long_variable: str, threshold: Real) -
     """
     Detect single datapoint outliers for column long_variable in df based on threshold.
     A single datapoint is flagged as an outlier if the absolute differences between it and BOTH immediate non-NaN
-    neighbors are greater than threshold.
+    neighbors are greater than or equal to the threshold.
     :param df: after processing with collect_data(), create_timestamp_col(), and convert_nan()
     :param long_variable: full variable name
     :param threshold: number
@@ -34,8 +34,8 @@ def find_outlier_spikes(df: pd.DataFrame, long_variable: str, threshold: Real) -
     next_diff = (s - next_valid).abs()
 
     df_copy['outlier'] = (
-        (prev_diff > threshold) &
-        (next_diff > threshold)
+        (prev_diff >= threshold) &
+        (next_diff >= threshold)
     )
 
     return df_copy[df_copy['outlier']].index
