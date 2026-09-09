@@ -85,6 +85,8 @@ def get_test_set(station: StationName,
     ascat_df = ascat_df.drop(columns=ismn_long_var_name)
     ascat_df = prepare_df(ascat_df, label_encoding=label_map, lagged_features=lagged_features, lags=lags)
 
+    # re-align indices
+    era5_df = era5_df[(era5_df.index >= ascat_df.index[0]) & (era5_df.index <= ascat_df.index[-1])]
     era5_df = era5_df.dropna(subset=["class"]) # match what's done in prepare_df()
 
     _, ascat_test = _train_test_split(ascat_df, train_size)
@@ -92,7 +94,13 @@ def get_test_set(station: StationName,
 
     # validate that both sets contain identical timestamps in the same order
     if not ascat_test.index.equals(era5_test.index):
-        raise ValueError("Inconsistent indexes for the ASCAT and ERA5 test sets.")
+        indices_only_in_ascat = ascat_test.index.difference(era5_test.index)
+        indices_only_in_era5 = era5_test.index.difference(ascat_test.index)
+        raise ValueError("Inconsistent indexes for the ASCAT and ERA5 test sets: \n"
+                         "Indices only in ASCAT test set: \n"
+                         f"{indices_only_in_ascat} \n"
+                         "Indices only in ERA5 test set: \n"
+                         f"{indices_only_in_era5}")
 
     return ascat_test, era5_test
 

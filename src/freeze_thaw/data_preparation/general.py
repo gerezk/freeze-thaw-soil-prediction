@@ -116,6 +116,11 @@ def align_timestamps_then_label(dfs: list[pd.DataFrame],
     """
     if len(dfs) != 3:
         raise ValueError("dfs must be a list of length three, representing ISMN, ASCAT, and ERA5 data.")
+    for df in dfs:
+        if df.index.duplicated().any():
+            duplicate_indices = df.index[df.index.duplicated()]
+            duplicate_rows = df.loc[duplicate_indices]
+            raise IndexError(f"One of the dfs contains duplicate indices: \n {duplicate_rows}")
 
     # inner join all dfs along DatetimeIndex
     combined_df = dfs[0].join(dfs[1:], how="inner")
@@ -133,10 +138,10 @@ def align_timestamps_then_label(dfs: list[pd.DataFrame],
         era5_key_cols + [ismn_var_name, "class"]
         ].copy()
 
-    # # add pred for ERA5
-    # if predict_method == "simple":
-    #     era5_df['pred'] =  era5_df['stl1'].map(classify_value_simple)
-    # else:
-    #     era5_df['pred'] = classify_value_rolling(era5_df['stl1'])
+    # add pred for ERA5
+    if predict_method == "simple":
+        era5_df['pred'] =  era5_df['stl1'].map(classify_value_simple)
+    else:
+        era5_df['pred'] = classify_value_rolling(era5_df['stl1'])
 
     return ascat_df, era5_df
