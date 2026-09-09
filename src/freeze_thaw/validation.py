@@ -12,7 +12,7 @@ def validate_time_index(df: pd.DataFrame) -> None:
     :return: None
     """
     if not isinstance(df.index, pd.DatetimeIndex):
-        raise TypeError("df index must be DatetimeIndex")
+        raise TypeError(f"df index must be DatetimeIndex. Instead, got {type(df.index).__name__}")
     dt_index = cast(pd.DatetimeIndex, df.index)
     if dt_index.tz is None:
         raise ValueError("df index must be timezone-aware")

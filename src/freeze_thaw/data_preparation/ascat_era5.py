@@ -48,12 +48,14 @@ def collect_data(data_path: Path, ismn_site_survey_path: Path, station_name: str
     raise ValueError(f'No data was found for {station_name}, {system} in {data_path}')
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
-def round_nearest_hour_index(df: pd.DataFrame, datetimeindex_name: str) -> pd.DataFrame:
+def round_nearest_hour_index(df: pd.DataFrame, datetimeindex_name: str, system: str) -> pd.DataFrame:
     """
     Rounds timestamps to the nearest hour then sets as the index. Indirect form of interpolation.
-    ASSUMPTION: Satellite passes are infrequent enough that duplicate timestamps won't be created
+    If there are rows with duplicate indices, drop any of the rows that have NaN in "backscatter40".
+    If rows with duplicate indices remain, take the first one.
     :param df: From collect_data() and check_df_cols()
     :param datetimeindex_name: Name of the datetime index column in the cleaned data csv file
+    :param system: ASCAT or ERA5, case-insensitive
     :return: pandas DataFrame with DatetimeIndex of rounded timestamps
     """
     # check input values
@@ -61,6 +63,8 @@ def round_nearest_hour_index(df: pd.DataFrame, datetimeindex_name: str) -> pd.Da
         raise ValueError('df must not be empty')
     if not {'time'}.issubset(df.columns):
         raise KeyError('df must contain time column')
+    if system.upper() not in ['ASCAT', 'ERA5']:
+        raise ValueError(f"system must be ASCAT or ERA5 (case-insensitive). Got {system} instead.")
 
     df_copy = df.copy()
 
@@ -69,6 +73,12 @@ def round_nearest_hour_index(df: pd.DataFrame, datetimeindex_name: str) -> pd.Da
     df_copy = df_copy.set_index(datetimeindex_name)
     df_copy = df_copy.drop(columns=["time"])
     df_copy = df_copy.sort_index()
+
+    # special handling for multiple ASCAT observations that could round to the same hour
+    if system.upper() == 'ASCAT':
+        duplicate_indices = df_copy.index[df_copy.index.duplicated()]
+        df_copy = df_copy.loc[~((df_copy.index.isin(duplicate_indices)) & (df_copy["backscatter40"].isna()))]
+        df_copy = df_copy[~df_copy.index.duplicated(keep='first')]
 
     return df_copy
 

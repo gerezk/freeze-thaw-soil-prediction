@@ -27,6 +27,7 @@ class TrainingResult:
 def train_and_save_station_models(train_size: float,
                                   n_splits: int,
                                   label_encoding: dict[str, int],
+                                  labelling_method: str,
                                   *,
                                   lagged_features: bool = False,
                                   lags: list[int] | None = None,
@@ -44,6 +45,7 @@ def train_and_save_station_models(train_size: float,
     :param train_size: decimal fraction size of training data
     :param n_splits: number of folds for cross-validation
     :param label_encoding: mapping of str classes to int labels
+    :param labelling_method: method for labelling the class of an observation. Either "simple" or "rolling".
     :param lagged_features: create lagged features or not
     :param lags: list of lags e.g. [1, 3] will create features for the backscatter from one and three datapoints prior
     :param params: parameters to pass to lightgbm.train
@@ -66,7 +68,7 @@ def train_and_save_station_models(train_size: float,
 
     for station in stations:
         print(f"Training and saving LightGBM model for {station}")
-        file_path = model_path / f"{station}_model.txt"
+        file_path = model_path / f"{station}_{labelling_method}_model.txt"
         if file_path.exists() and not overwrite:
             print(f"{file_path.name} already exists. Skipping.")
             continue
@@ -194,4 +196,12 @@ if __name__ == '__main__':
 
     train_and_save_station_models(train_size=0.8,
                                   n_splits=5,
-                                  label_encoding=label_map)
+                                  label_encoding=label_map,
+                                  labelling_method="rolling",
+                                  lagged_features=True,
+                                  lags=[1, 2, 3, 4, 5, 7, 10])
+
+    train_and_save_station_models(train_size=0.8,
+                                  n_splits=5,
+                                  label_encoding=label_map,
+                                  labelling_method="simple")
