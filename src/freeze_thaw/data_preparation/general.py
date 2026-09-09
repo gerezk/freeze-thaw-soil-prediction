@@ -5,8 +5,8 @@ from pathlib import Path
 import logging
 logger = logging.getLogger(__name__)
 
-from freeze_thaw.validation import validate_time_index, validate_date_range
-from freeze_thaw._internal_functions import classify_value
+from freeze_thaw.validation import validate_time_index
+from freeze_thaw._internal_functions import classify_value_rolling, classify_value_simple
 from freeze_thaw.config import StationName
 
 
@@ -45,22 +45,28 @@ def filter_df(df: pd.DataFrame, start: datetime | None=None, end: datetime | Non
 
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
-def add_class_col(df: pd.DataFrame, variable: str, col_name: str) -> pd.DataFrame:
+def add_class_col(df: pd.DataFrame, variable: str, col_name: str, labelling_method: str = "simple") -> pd.DataFrame:
     """
     Adds a class column to dataframe based on a boundary mirrored cross the freezing point in C.
     Classes must be a list of strings of length three, with elements in descending order by temperature.
     :param df: from collect_data()
     :param variable: variable name
     :param col_name: class column name
+    :param labelling_method: method for labelling the class of an observation. Either "simple" or "rolling".
     :return: dataframe with added class column
     """
     # check input data types
     if not pd.api.types.is_numeric_dtype(df[variable]):
         raise TypeError(f'{variable} column in df must be a numeric type')
+    if labelling_method not in ("simple", "rolling"):
+        raise ValueError('labelling_method must be "simple" or "rolling"')
 
     df_copy = df.copy()
 
-    df_copy[col_name] = df_copy[variable].map(classify_value)
+    if labelling_method == "simple":
+        df_copy[col_name] =  df_copy[variable].map(classify_value_simple)
+    else:
+        df_copy[col_name] = classify_value_rolling(df_copy[variable])
 
     return df_copy
 
@@ -95,7 +101,8 @@ def collect_cleaned_data(station_name: StationName,
 def align_timestamps_then_label(dfs: list[pd.DataFrame],
                                 ismn_var_name: str,
                                 ascat_key_cols: list[str],
-                                era5_key_cols: list[str]) -> tuple[pd.DataFrame, pd.DataFrame]:
+                                era5_key_cols: list[str],
+                                predict_method: str = "simple") -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Align the three datasets on their DatetimeIndex using an inner join, then label ASCAT and ERA5 records
     according to ISMN soil temperature.
@@ -103,6 +110,7 @@ def align_timestamps_then_label(dfs: list[pd.DataFrame],
     :param ismn_var_name: Variable name for ISMN soil temperature
     :param ascat_key_cols: List of str that mark columns representing ASCAT data
     :param era5_key_cols: List of str that mark columns representing ERA5 data
+    :param predict_method: method for predicting the class of an observation. Either "simple" or "rolling".
     :return: ascat_df and era5_df, with each record labelled according to ISMN soil temperature. The two dfs also
     contain the ISMN soil temperature.
     """
@@ -113,8 +121,8 @@ def align_timestamps_then_label(dfs: list[pd.DataFrame],
     combined_df = dfs[0].join(dfs[1:], how="inner")
     combined_df = combined_df.sort_index()
 
-    # add label based on ISMN temp to each record
-    combined_df['class'] = combined_df[ismn_var_name].map(classify_value)
+    # # add label based on ISMN temp to each record
+    # combined_df['class'] = combined_df[ismn_var_name].map(classify_value)
 
     # split into two dfs
     # avoids SettingWithCopyWarning
@@ -125,7 +133,10 @@ def align_timestamps_then_label(dfs: list[pd.DataFrame],
         era5_key_cols + [ismn_var_name, "class"]
         ].copy()
 
-    # add pred for ERA5
-    era5_df['pred'] = era5_df['stl1'].map(classify_value)
+    # # add pred for ERA5
+    # if predict_method == "simple":
+    #     era5_df['pred'] =  era5_df['stl1'].map(classify_value_simple)
+    # else:
+    #     era5_df['pred'] = classify_value_rolling(era5_df['stl1'])
 
     return ascat_df, era5_df
