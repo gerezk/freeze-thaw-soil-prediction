@@ -17,6 +17,10 @@ def formatted_cm(y_true: Union[pd.Series, np.ndarray], y_pred: Union[pd.Series, 
     if len(y_true) != len(y_pred):
         raise ValueError("y_true and y_pred must have the same length.")
 
+    # filter out classes that are not present in either y_true or y_pred
+    present_classes = set(y_true).union(set(y_pred))
+    classes = [cls for cls in classes if cls in present_classes]
+
     cm = confusion_matrix(y_true, y_pred, labels=classes)
     cm = pd.DataFrame(cm, index=classes, columns=classes)
 
@@ -36,8 +40,9 @@ def calculate_f1_scores(y_true: Union[pd.Series, np.ndarray], y_pred: Union[pd.S
     if len(y_true) != len(y_pred):
         raise ValueError("y_true and y_pred must have the same length.")
 
-    if not all(cls in set(y_true).union(set(y_pred)) for cls in classes):
-        raise ValueError("All classes must be present in either y_true or y_pred.")
+    # filter out classes that are not present in either y_true or y_pred
+    present_classes = set(y_true).union(set(y_pred))
+    classes = [cls for cls in classes if cls in present_classes]
 
     f1_per_class = f1_score(
         y_true,
