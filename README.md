@@ -33,11 +33,18 @@ A set of 10 ISMN stations was created, and the locations of the stations are dep
 ├── ISMN_site_survey.csv
 ├── requirements.txt
 ├── notebooks
-│   ├── ASCAT_ERA5_data_cleaning.ipynb
-│   ├── assess_methodology.ipynb
-│   ├── ISMN_data_cleaning.ipynb
-│   ├── model_selection.ipynb
-│   └── model_vs_ERA5.ipynb
+│   ├── rolling_classification
+│   │   ├── 1_ISMN_data_cleaning.ipynb
+│   │   ├── 2_ASCAT_ERA5_data_cleaning.ipynb
+│   │   ├── 3_assess_methodology.ipynb
+│   │   ├── 4_model_selection.ipynb
+│   │   └── 5_model_vs_ERA5.ipynb
+│   └── simple_classification
+│       ├── 1_ISMN_data_cleaning.ipynb
+│       ├── 2_ASCAT_ERA5_data_cleaning.ipynb
+│       ├── 3_assess_methodology.ipynb
+│       ├── 4_model_selection.ipynb
+│       └── 5_model_vs_ERA5.ipynb
 └── src
     └── freeze_thaw
         ├── data_preparation
@@ -85,6 +92,89 @@ Possible downsides of these reanalysis products are that they may smooth or misr
 This project evaluates whether ML applied to ASCAT backscatter can match or outperform ERA5 in predicting soil 
 freeze/thaw transitions, providing a reproducible and observation-driven alternative for large-scale monitoring.
 
+## 📊 Results
+
+### Simple Classification
+
+The first set of results are based on classifying an observation solely on its ISMN soil temperature.
+Where the boundaries are defined as `-1 °C < transition ≤ 1 °C`, with frozen and thawed being below and 
+above these bounds respectively. For more details, see `notebooks/simple_classification/5_model_vs_ERA5.ipynb`.
+The differences shown are the lightGBM minus ERA5 F1 scores.
+
+#### Macro F1
+
+| Station          | lightGBM-ASCAT | ERA5  | Difference |
+|------------------|----------------|-------|------------|
+| Aberdeen-35-WNW  | 0.641          | 0.650 | -0.009     |
+| Jamestown-38-WSW | 0.746          | 0.608 | 0.138      |
+| GobblersKnob     | 0.830          | 0.746 | 0.084      |
+| Nenana           | 0.789          | 0.651 | 0.138      |
+| L23              | 0.871          | 0.568 | 0.303      |
+| L38              | 0.794          | 0.523 | 0.271      |
+| NST-07           | 0.740          | 0.620 | 0.120      |
+| NST-09           | 0.824          | 0.579 | 0.245      |
+| SOD012           | 0.667          | 0.549 | 0.118      |
+| SOD103           | 0.556          | 0.326 | 0.230      |
+
+#### Transition F1
+
+| Station          | lightGBM-ASCAT | ERA5  | Difference |
+|------------------|----------------|-------|------------|
+| Aberdeen-35-WNW  | 0.576          | 0.340 | 0.235      |
+| Jamestown-38-WSW | 0.642          | 0.278 | 0.363      |
+| GobblersKnob     | 0.640          | 0.462 | 0.178      |
+| Nenana           | 0.641          | 0.281 | 0.360      |
+| L23              | 0.716          | 0.091 | 0.625      |
+| L38              | 0.561          | 0.050 | 0.511      |
+| NST-07           | 0.530          | 0.311 | 0.219      |
+| NST-09           | 0.652          | 0.169 | 0.483      |
+| SOD012           | 0.821          | 0.406 | 0.415      |
+| SOD103           | 0.779          | 0.146 | 0.633      |
+
+### Rolling Classification
+
+The second set of results are based on classifying an observation based on its current ISMN soil temperature along with
+the temperatures for the preceding 72 hours. An observation is classified as frozen if all temperatures are at or below 
+0 °C. Vice versa for the thawed state. The transition state is if the temperatures cross the boundary. For more details, 
+see `notebooks/rolling_classification/5_model_vs_ERA5.ipynb`. The differences shown are the lightGBM minus ERA5 F1 scores.
+
+#### Macro F1
+
+| Station          | lightGBM-ASCAT | ERA5  | Difference |
+|------------------|----------------|-------|------------|
+| Aberdeen-35-WNW  | 0.651          | 0.602 | 0.048      |
+| Jamestown-38-WSW | 0.615          | 0.612 | 0.004      |
+| GobblersKnob     | 0.714          | 0.660 | 0.054      |
+| Nenana           | 0.693          | 0.580 | 0.113      |
+| L23              | 0.654          | 0.502 | 0.152      |
+| L38              | 0.791          | 0.484 | 0.307      |
+| NST-07           | 0.737          | 0.656 | 0.081      |
+| NST-09           | 0.765          | 0.567 | 0.198      |
+| SOD012           | 0.525          | 0.502 | 0.023      |
+| SOD103           | 0.348          | 0.244 | 0.104      |
+
+#### Transition F1
+
+| Station          | lightGBM-ASCAT | ERA5  | Difference |
+|------------------|----------------|-------|------------|
+| Aberdeen-35-WNW  | 0.196          | 0.170 | 0.026      |
+| Jamestown-38-WSW | 0.011          | 0.146 | -0.135     |
+| GobblersKnob     | 0.248          | 0.197 | 0.051      |
+| Nenana           | 0.172          | 0.008 | 0.165      |
+| L23              | 0.477          | 0.139 | 0.339      |
+| L38              | 0.660          | 0.084 | 0.576      |
+| NST-07           | 0.503          | 0.340 | 0.163      |
+| NST-09           | 0.593          | 0.224 | 0.369      |
+| SOD012           | 0.087          | 0.101 | -0.015     |
+| SOD103           | 0.120          | 0.000 | 0.120      |
+
+The results suggest that the lightGBM model trained on the ASCAT data significantly outperforms ERA5. However, there's
+a weakness in the methodology that may be unfairly punishing ERA5. Specifically, large area measurements are being 
+evaluated against a single point measurment from an ISMN station. The lightGBM model trained on ASCAT is also affected
+by this, but the model is specifically trained against labels derived from a single ISMN point measurement. A better 
+approach may be to select multiple ISMN stations that fall under one ASCAT and ERA5 footprint, then taking the average
+temperature. See `notebooks/../3_assess_methodology.ipynb` for more details.
+
 ## 🛠️ Tech Stack
 - Python (3.12)
 - Pydantic
@@ -126,6 +216,14 @@ Install requirements:
 ```
 pip install -r requirements.txt
 ```
+
+- Download the raw ASCAT and ERA5 data files from 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19259520.svg)](https://doi.org/10.5281/zenodo.19259520)
+and move them to `../data/raw/ASCAT_ERA5`. 
+- Download the ISMN data and move them to `../data/raw/ISMN/{station_name}`.
+- Run notebooks 1-4. 
+- Execute `../src/freeze_thaw/modeling/lgb_train.py`; be mindful of the parameters under `if __name__ == '__main__':`
+- Run notebook 5.
 
 ## ℹ️ Sources
 
