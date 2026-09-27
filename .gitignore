@@ -1,6 +1,7 @@
 # Do not push data or models to repo
 data/
 models/
+.idea/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -81,6 +82,7 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+.jupyter/
 
 # IPython
 profile_default/
