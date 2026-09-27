@@ -17,7 +17,6 @@ def collect_process_split(station: StationName,
                           era5_key_cols: list[str],
                           train_size: float,
                           label_map: dict[str, int],
-                          lagged_features: bool = False,
                           lags: list[int] | None = None) -> (pd.DataFrame, pd.DataFrame):
     """
     Given a StationName, collect the relevant cleaned data, join, label, perform feature engineering,
@@ -30,14 +29,13 @@ def collect_process_split(station: StationName,
     :param era5_key_cols: columns to keep from ERA5 data
     :param train_size: decimal fraction size of training data
     :param label_map: mapping of class names to ints
-    :param lagged_features: create lagged features or not
     :param lags: list of lags e.g. [1, 3] will create features for the backscatter from one and three datapoints prior
     :return: train and test splits as pd.DataFrame objects
     """
     dfs = collect_cleaned_data(station, cleaned_data_path, datetimeindex_name)
     ascat_df, _ = align_timestamps_then_label(dfs, ismn_long_var_name, ascat_key_cols, era5_key_cols)
     ascat_df = ascat_df.drop(columns=ismn_long_var_name)
-    ascat_df = prepare_df(ascat_df, label_encoding=label_map, lagged_features=lagged_features, lags=lags)
+    ascat_df = prepare_df(ascat_df, label_encoding=label_map, lags=lags)
 
     train, test = _train_test_split(ascat_df, train_size)
 
@@ -45,7 +43,7 @@ def collect_process_split(station: StationName,
 
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
-def get_test_set(station: StationName,
+def get_test_sets(station: StationName,
                  train_size: float,
                  label_map: dict[str, int],
                  *,
@@ -54,22 +52,19 @@ def get_test_set(station: StationName,
                  ismn_long_var_name: str | None = None,
                  ascat_key_cols: list[str] | None = None,
                  era5_key_cols: list[str] | None = None,
-                 lagged_features: bool = False,
                  lags: list[int] | None = None) -> (pd.DataFrame, pd.DataFrame):
     """
     Given a StationName, collect the relevant cleaned data, join, label, perform feature engineering,
     then create and return the test split for both ASCAT and ERA5. The test split will always contain the most recent
     data. Both sets are guaranteed to share the same indices. The ERA5 df will contain the original class labels.
     :param station: station name from StationName class in config.py
-    :param train_size: decimal fraction size of training data. If 0.8 is entered,
-    the most recent 20% of data will be returned i.e. the test split
+    :param train_size: decimal fraction size of training data. If 0.8 is entered, the most recent 20% of data will be returned i.e. the test split
     :param label_map: mapping of class names to ints
     :param cleaned_data_path: path to cleaned data
     :param datetimeindex_name: datetime index column name in csv file
     :param ismn_long_var_name: full variable name for ISMN soil temperature
     :param ascat_key_cols: columns to keep from ASCAT data
     :param era5_key_cols: columns to keep from ERA5 data
-    :param lagged_features: create lagged features or not
     :param lags: list of lags e.g. [1, 3] will create features for the backscatter from one and three datapoints prior
     :return: test split for both ASCAT and ERA5
     """
@@ -83,7 +78,7 @@ def get_test_set(station: StationName,
     dfs = collect_cleaned_data(station, cleaned_data_path, datetimeindex_name)
     ascat_df, era5_df = align_timestamps_then_label(dfs, ismn_long_var_name, ascat_key_cols, era5_key_cols)
     ascat_df = ascat_df.drop(columns=ismn_long_var_name)
-    ascat_df = prepare_df(ascat_df, label_encoding=label_map, lagged_features=lagged_features, lags=lags)
+    ascat_df = prepare_df(ascat_df, label_encoding=label_map, lags=lags)
 
     # re-align indices
     era5_df = era5_df[(era5_df.index >= ascat_df.index[0]) & (era5_df.index <= ascat_df.index[-1])]

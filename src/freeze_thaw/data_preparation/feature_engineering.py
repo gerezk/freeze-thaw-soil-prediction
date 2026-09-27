@@ -5,20 +5,17 @@ from pydantic import validate_call, ConfigDict
 
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
-def prepare_df(df: pd.DataFrame, label_encoding: dict[str, int], lagged_features: bool,
+def prepare_df(df: pd.DataFrame,
+               label_encoding: dict[str, int],
                lags: list[int] | None = None) -> pd.DataFrame:
     """
     Prepare df for ingestion by an ML model. Class labels will be converted to integers,
     which is required for model input. Lagged features are first created, then unlabelled rows are dropped.
     :param df: pd.DataFrame
     :param label_encoding: dict mapping c.CLASSES to int
-    :param lagged_features: whether to use lagged features
-    :param lags: list of lags to create
+    :param lags: lag configuration. The elements refer to which observations in the past to use; time delta between observations is not constant
     :return: processed df
     """
-    if lagged_features and lags is None:
-        raise ValueError("The variable 'lags' should be a list of ints with a length of at least 1 "
-                         "when creating lagged features.")
     if not df.index.inferred_type == "datetime64":
         raise ValueError("df index inferred_type must be datetime64")
     if df["class"].dtype == "int64":
@@ -27,7 +24,7 @@ def prepare_df(df: pd.DataFrame, label_encoding: dict[str, int], lagged_features
 
     df_copy = df.copy()
 
-    if lagged_features:
+    if lags is not None:
         df_copy = _create_lagged_features(df_copy, lags)
     df_copy = _cyclical_encoding(df_copy)
 

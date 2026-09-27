@@ -1,7 +1,8 @@
 import pandas as pd
 import numpy as np
 import lightgbm as lgb
-from sklearn.model_selection import TimeSeriesSplit
+from sklearn.model_selection import TimeSeriesSplit#
+from sklearn.metrics import accuracy_score
 from dataclasses import dataclass
 from pydantic import validate_call, ConfigDict
 from pathlib import Path
@@ -17,6 +18,7 @@ class TrainingResult:
     model: lgb.Booster
     fold_macro_f1_scores: list[float]
     fold_transition_f1_scores: list[float]
+    oof_accuracy: float
     oof_macro_f1: float
     oof_transition_f1: float
     oof_predictions: np.ndarray
@@ -28,9 +30,8 @@ def train_and_save_station_models(train_size: float,
                                   n_splits: int,
                                   label_encoding: dict[str, int],
                                   labelling_method: str,
-                                  *,
-                                  lagged_features: bool = False,
                                   lags: list[int] | None = None,
+                                  *,
                                   params: dict[str, object] | None = None,
                                   stations: Iterable[StationName] = StationName,
                                   cleaned_data_path: Path | None = None,
@@ -46,7 +47,6 @@ def train_and_save_station_models(train_size: float,
     :param n_splits: number of folds for cross-validation
     :param label_encoding: mapping of str classes to int labels
     :param labelling_method: method for labelling the class of an observation. Either "simple" or "rolling".
-    :param lagged_features: create lagged features or not
     :param lags: list of lags e.g. [1, 3] will create features for the backscatter from one and three datapoints prior
     :param params: parameters to pass to lightgbm.train
     :param stations: StationName class from config.py
@@ -81,7 +81,6 @@ def train_and_save_station_models(train_size: float,
                                          era5_key_cols,
                                          train_size,
                                          label_encoding,
-                                         lagged_features,
                                          lags)
 
         train_result = train_model(train, n_splits, label_encoding, params)
@@ -166,6 +165,7 @@ def train_model(df: pd.DataFrame,
     y_pred_oof = oof_predictions[oof_mask]
 
     # calculate metrics across all OOF predictions
+    oof_accuracy = accuracy_score(y_oof, y_pred_oof)
     oof_macro_f1, oof_transition_f1 = calculate_f1_scores(
         y_oof,
         y_pred_oof,
@@ -180,6 +180,7 @@ def train_model(df: pd.DataFrame,
         model=model,
         fold_macro_f1_scores=macro_f1_scores,
         fold_transition_f1_scores=transition_f1_scores,
+        oof_accuracy=oof_accuracy,
         oof_macro_f1=oof_macro_f1,
         oof_transition_f1=oof_transition_f1,
         oof_predictions=y_pred_oof,
@@ -194,12 +195,12 @@ if __name__ == '__main__':
         c.CLASSES[2]: 2,
     }
 
-    train_and_save_station_models(train_size=0.8,
-                                  n_splits=5,
-                                  label_encoding=label_map,
-                                  labelling_method="rolling",
-                                  lagged_features=True,
-                                  lags=[1, 2, 3, 4, 5, 7, 10])
+    # train_and_save_station_models(train_size=0.8,
+    #                               n_splits=5,
+    #                               label_encoding=label_map,
+    #                               labelling_method="rolling",
+    #                               lagged_features=True,
+    #                               lags=[1, 2])
 
     train_and_save_station_models(train_size=0.8,
                                   n_splits=5,
