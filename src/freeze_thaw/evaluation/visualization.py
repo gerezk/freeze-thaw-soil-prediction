@@ -1,11 +1,16 @@
 import pandas as pd
+import matplotlib.pyplot as plt
+from IPython.core.pylabtools import figsize
 from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from matplotlib.dates import DateFormatter
 import numpy as np
 from pydantic import validate_call, ConfigDict
+from pathlib import Path
 
 from freeze_thaw.config import config as c, StationName
 from freeze_thaw.data_understanding.visualization import plot_with_labels
+from freeze_thaw.utils import find_repo_root
 
 
 @validate_call(config=ConfigDict(arbitrary_types_allowed=True))
@@ -72,5 +77,62 @@ def plot_predictions(df: pd.DataFrame,
     axes.set_xlabel("Timestamp")
 
     axes.set_ylabel("ISMN Soil Temperature (\u00B0C)")
+
+    return axes
+
+
+@validate_call(config=ConfigDict(arbitrary_types_allowed=True))
+def plot_metrics(lgb_df: pd.DataFrame, era5_df: pd.DataFrame, save_image: bool = False) -> Axes:
+    """
+    Plot metrics
+    :param lgb_df: pd.DataFrame
+    :param era5_df: pd.DataFrame
+    :param save_image: bool
+    :return:
+    """
+    key_cols = {"Station", "Accuracy", "Macro F1", "Transition F1"}
+    if not key_cols.issubset(lgb_df.columns):
+        raise ValueError(f"lgb_df must have columns: {key_cols}. It currently only has {lgb_df.columns}")
+    if not key_cols.issubset(era5_df.columns):
+        raise ValueError(f"era5_df must have columns: {key_cols}. It currently only has {era5_df.columns}")
+
+    img_dir = find_repo_root() / "images"
+    if not img_dir.is_dir():
+        try:
+            img_dir.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            raise OSError(f'Directory not found at {img_dir} and could not be created.')
+
+    fig, axes = plt.subplots(1, 3, figsize=(12, 5), constrained_layout=True)
+
+    # accuracy
+    axes[0].plot(lgb_df["Station"], lgb_df["Accuracy"], color="orange", label="lgb-ASCAT")
+    axes[0].plot(era5_df["Station"], era5_df["Accuracy"], color="blue", label="ERA5")
+    axes[0].tick_params("x", rotation=45, rotation_mode="xtick")
+    axes[0].set_ylim(0, 1)
+    axes[0].set_xlabel("Station")
+    axes[0].set_ylabel("Accuracy")
+    axes[0].legend()
+
+    # macro F1
+    axes[1].plot(lgb_df["Station"], lgb_df["Macro F1"], color="orange", label="lgb-ASCAT")
+    axes[1].plot(era5_df["Station"], era5_df["Macro F1"], color="blue", label="ERA5")
+    axes[1].tick_params("x", rotation=45, rotation_mode="xtick")
+    axes[1].set_ylim(0, 1)
+    axes[1].set_xlabel("Station")
+    axes[1].set_ylabel("Macro F1")
+    axes[1].legend()
+
+    # transition F1
+    axes[2].plot(lgb_df["Station"], lgb_df["Transition F1"], color="orange", label="lgb-ASCAT")
+    axes[2].plot(era5_df["Station"], era5_df["Transition F1"], color="blue", label="ERA5")
+    axes[2].tick_params("x", rotation=45, rotation_mode="xtick")
+    axes[2].set_ylim(0, 1)
+    axes[2].set_xlabel("Station")
+    axes[2].set_ylabel("Transition F1")
+    axes[2].legend()
+
+    if save_image:
+        fig.savefig(img_dir / "metrics.png")
 
     return axes
