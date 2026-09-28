@@ -60,9 +60,10 @@ A set of 10 ISMN stations was created, and the locations of the stations are dep
         ├── evaluation
         │   ├── metrics.py
         │   └── statistics.py
+        │   └── visualization.py
         ├── modeling
-        │   ├── lgb_test.py
-        │   └── lgb_train.py
+        │   ├── test.py
+        │   └── train.py
         ├── _internal_functions.py
         ├── config.py
         ├── utils.py
@@ -97,76 +98,27 @@ freeze/thaw transitions, providing a reproducible and observation-driven alterna
 ### Simple Classification
 
 The first set of results are based on classifying an observation solely on its ISMN soil temperature.
-Where the boundaries are defined as `-1 °C < transition ≤ 1 °C`, with frozen and thawed being below and 
+The boundaries are defined as `-1 °C < transition ≤ 1 °C`, with frozen and thawed being below and 
 above these bounds respectively. For more details, see `notebooks/simple_classification/5_model_vs_ERA5.ipynb`.
-The differences shown are the lightGBM minus ERA5 F1 scores.
 
-#### Macro F1
+![](/images/for_README/metrics_simple.png)
 
-| Station          | lightGBM-ASCAT | ERA5  | Difference |
-|------------------|----------------|-------|------------|
-| Aberdeen-35-WNW  | 0.641          | 0.650 | -0.009     |
-| Jamestown-38-WSW | 0.746          | 0.608 | 0.138      |
-| GobblersKnob     | 0.830          | 0.746 | 0.084      |
-| Nenana           | 0.789          | 0.651 | 0.138      |
-| L23              | 0.871          | 0.568 | 0.303      |
-| L38              | 0.794          | 0.523 | 0.271      |
-| NST-07           | 0.740          | 0.620 | 0.120      |
-| NST-09           | 0.824          | 0.579 | 0.245      |
-| SOD012           | 0.667          | 0.549 | 0.118      |
-| SOD103           | 0.556          | 0.326 | 0.230      |
-
-#### Transition F1
-
-| Station          | lightGBM-ASCAT | ERA5  | Difference |
-|------------------|----------------|-------|------------|
-| Aberdeen-35-WNW  | 0.576          | 0.340 | 0.235      |
-| Jamestown-38-WSW | 0.642          | 0.278 | 0.363      |
-| GobblersKnob     | 0.640          | 0.462 | 0.178      |
-| Nenana           | 0.641          | 0.281 | 0.360      |
-| L23              | 0.716          | 0.091 | 0.625      |
-| L38              | 0.561          | 0.050 | 0.511      |
-| NST-07           | 0.530          | 0.311 | 0.219      |
-| NST-09           | 0.652          | 0.169 | 0.483      |
-| SOD012           | 0.821          | 0.406 | 0.415      |
-| SOD103           | 0.779          | 0.146 | 0.633      |
+The two-sided exact paired sign-flipping permutation test ($\alpha=0.05$) was applied to each metric to determine if there's a 
+statistically significant difference in performance across the ten stations between the two methods. The p-values for 
+accuracy, macro F$_1$, and transition F$_1$ are 0.002, 0.003, and 0.002 respectively.
 
 ### Rolling Classification
 
 The second set of results are based on classifying an observation based on its current ISMN soil temperature along with
 the temperatures for the preceding 72 hours. An observation is classified as frozen if all temperatures are at or below 
 0 °C. Vice versa for the thawed state. The transition state is if the temperatures cross the boundary. For more details, 
-see `notebooks/rolling_classification/5_model_vs_ERA5.ipynb`. The differences shown are the lightGBM minus ERA5 F1 scores.
+see `notebooks/rolling_classification/5_model_vs_ERA5.ipynb`.
 
-#### Macro F1
+![](/images/for_README/metrics_rolling.png)
 
-| Station          | lightGBM-ASCAT | ERA5  | Difference |
-|------------------|----------------|-------|------------|
-| Aberdeen-35-WNW  | 0.651          | 0.602 | 0.048      |
-| Jamestown-38-WSW | 0.615          | 0.612 | 0.004      |
-| GobblersKnob     | 0.714          | 0.660 | 0.054      |
-| Nenana           | 0.693          | 0.580 | 0.113      |
-| L23              | 0.654          | 0.502 | 0.152      |
-| L38              | 0.791          | 0.484 | 0.307      |
-| NST-07           | 0.737          | 0.656 | 0.081      |
-| NST-09           | 0.765          | 0.567 | 0.198      |
-| SOD012           | 0.525          | 0.502 | 0.023      |
-| SOD103           | 0.348          | 0.244 | 0.104      |
-
-#### Transition F1
-
-| Station          | lightGBM-ASCAT | ERA5  | Difference |
-|------------------|----------------|-------|------------|
-| Aberdeen-35-WNW  | 0.196          | 0.170 | 0.026      |
-| Jamestown-38-WSW | 0.011          | 0.146 | -0.135     |
-| GobblersKnob     | 0.248          | 0.197 | 0.051      |
-| Nenana           | 0.172          | 0.008 | 0.165      |
-| L23              | 0.477          | 0.139 | 0.339      |
-| L38              | 0.660          | 0.084 | 0.576      |
-| NST-07           | 0.503          | 0.340 | 0.163      |
-| NST-09           | 0.593          | 0.224 | 0.369      |
-| SOD012           | 0.087          | 0.101 | -0.015     |
-| SOD103           | 0.120          | 0.000 | 0.120      |
+The same statistical test was applied to each metric to determine if there's a 
+statistically significant difference in performance across the ten stations between the two methods. The p-values for 
+accuracy, macro F$_1$, and transition F$_1$ are 0.002, 0.002, and 0.003 respectively.
 
 The results suggest that the lightGBM model trained on the ASCAT data significantly outperforms ERA5. However, there's
 a weakness in the methodology that may be unfairly punishing ERA5. Specifically, large area measurements are being 
